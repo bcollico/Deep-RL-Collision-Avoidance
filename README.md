@@ -1,1 +1,2 @@
-# aa227_project
+# AA277 Project
+## Deep Reinforcement Learning for Collision Avoidance
