@@ -1,0 +1,43 @@
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{verbatim}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
+% commands for fixing the author name centering    
+\makeatletter % changes the catcode of @ to 11
+\newcommand{\linebreakand}{%
+  \end{@IEEEauthorhalign}
+  \hfill\mbox{}\par
+  \mbox{}\hfill\begin{@IEEEauthorhalign}
+}
+\makeatother % changes the catcode of @ back to 12
+
+\newcommand{\state}[2]{\boldsymbol{s}^{#1}_{#2}}
+\newcommand{\ctrl}[2]{\boldsymbol{u}^{#1}_{#2}}
+
+\newcommand{\radius}[1]{r_{#1}}
+\newcommand{\headangle}[1]{\phi_{#1}}
+\newcommand{\pos}[1]{p_{#1}}
+\newcommand{\vel}[1]{v_{#1}}
+\newcommand{\posvec}[1]{\boldsymbol{\pos{}}_{#1}}
+\newcommand{\velvec}[1]{\boldsymbol{\vel{}}_{#1}}
+
+\newcommand{\policy}[1]{\pi_{#1}}
+\newcommand{\dt}{\Delta t}
+
+\newcommand{\Reward}[1]{R_{#1}}
+\newcommand{\reward}[1]{r_{#1}}
+\newcommand{\Value}{V^{\star}}
+\newcommand{\discount}{\gamma}
+\newcommand{\transition}[3]{T(#1, \, #2 \ | \ #3)}
+
+\newcommand{\norm}[1]{\lvert\lvert \,  #1  \, \rvert\rvert}
+\newcommand{\inR}[1]{\in \mathbb{R}^{#1}}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\expectation}{\mathbb{E}}
