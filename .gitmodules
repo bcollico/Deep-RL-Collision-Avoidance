@@ -1,0 +1,3 @@
+[submodule "RVO2"]
+	path = RVO2
+	url = https://github.com/snape/RVO2.git
