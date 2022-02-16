@@ -36,27 +36,12 @@
  * for use in Supervised Learning of the value function for a learned CA policy
  */
 
-#ifndef RVO_OUTPUT_TIME_AND_POSITIONS
-#define RVO_OUTPUT_TIME_AND_POSITIONS 1
-#endif
-
-#ifndef RVO_SEED_RANDOM_NUMBER_GENERATOR
-#define RVO_SEED_RANDOM_NUMBER_GENERATOR 1
-#endif
-
 #include <cmath>
 #include <cstdlib>
 #include <fstream>
-
-#include <vector>
-
-#if RVO_OUTPUT_TIME_AND_POSITIONS
 #include <iostream>
-#endif
-
-#if RVO_SEED_RANDOM_NUMBER_GENERATOR
+#include <vector>
 #include <ctime>
-#endif
 
 #if _OPENMP
 #include <omp.h>
@@ -73,17 +58,14 @@ std::vector<RVO::Vector2> goals;
 
 void setupScenario(RVO::RVOSimulator *sim, int n_agents, float dim_world, float dt)
 {
-// #if RVO_SEED_RANDOM_NUMBER_GENERATOR
-// 	std::srand(static_cast<unsigned int>(std::time(NULL)));
-// #endif
-
 	/* Specify the global time step of the simulation. */
 	sim->setTimeStep(dt);
 
-	/* Specify the default parameters for agents that are subsequently added. */
-    /* float::neighborDist   , size_t::maxNeighbors, float::timeHorizon, 
-       float::timeHorizonObst, float::radius       , float::maxSpeed   , 
-	   const::Vector2 &velocity=Vector2()*/
+	/* Specify the default parameters for agents that are subsequently added.
+       { float::neighborDist   , size_t::maxNeighbors, float::timeHorizon, 
+         float::timeHorizonObst, float::radius       , float::maxSpeed   , 
+	     const::Vector2 &velocity=Vector2() }
+	Adjust robot size and maximum speed based on the size of the world */
 	sim->setAgentDefaults(15.0f, 10, 5.0f, 5.0f, dim_world/100, dim_world/50);
 
 	/*
@@ -97,27 +79,13 @@ void setupScenario(RVO::RVOSimulator *sim, int n_agents, float dim_world, float 
     float x, y, xg, yg;
 
     for (int i = 0; i < n_agents; ++i){
+		/* Assign random states and random goals to the agents */
         x = range_x * (((float)rand()/RAND_MAX) - 0.5); xg = range_x * (((float)rand()/RAND_MAX) - 0.5);
         y = range_y * (((float)rand()/RAND_MAX) - 0.5); yg = range_y * (((float)rand()/RAND_MAX) - 0.5);
         sim->addAgent(RVO::Vector2(x, y));
         goals.push_back(RVO::Vector2(xg, yg));
     }
 }
-
-#if RVO_OUTPUT_TIME_AND_POSITIONS
-void updateVisualization(RVO::RVOSimulator *sim)
-{
-	/* Output the current global time. */
-	std::cout << sim->getGlobalTime();
-
-	/* Output the current position of all the agents. */
-	for (size_t i = 0; i < sim->getNumAgents(); ++i) {
-		std::cout << " " << sim->getAgentPosition(i);
-	}
-
-	std::cout << std::endl;
-}
-#endif
 
 void setPreferredVelocities(RVO::RVOSimulator *sim)
 {
@@ -163,26 +131,24 @@ bool reachedGoal(RVO::RVOSimulator *sim, float thresh)
 
 int main()
 {
+	/* Set randomizer seed. Fix this number to produce repeatable data */
 	std::srand(static_cast<unsigned int>(std::time(NULL)));
 
-    int n_agents = 2;
-    int N_episodes = 2;
+	/* Set Simulation Parameters*/
+	float dim_world 	= 10; 	// assumes square world with side length dim_world
+	float dt 			= 0.25;
+	int   episode 		= 0;
+	int   n_agents 		= 2;
+    int   N_episodes 	= 2;
 
-	// assumes square world with side length dim_world
-	float dim_world = 10;
+	/* Data File Row Organization:
+	Episode, (px1(t0) py1(t0)) (vx1(t0) vy1(t0)), ..., (pxn(t0) pyn(t0)) (vxn(t0) vyn(t0)),...,
+	  		 (px1(tf) py1(tf)) (vx1(tf) vy1(tf)), ..., (pxn(tf) pyn(tf)) (vxn(tf) vyn(tf))
+	Each episode maintains it's own row in the file. The number of robots, number of episodes, 
+	and simulation dt is written at the top of the file */
+	std::ofstream training_data_file("data/training_data.csv");
 
-	float dt = 0.25;
-
-    int episode = 0;
-
-	// Data File Row Organization:
-	// Episode, (px1(t0) py1(t0)) (vx1(t0) vy1(t0)), ..., (pxn(t0) pyn(t0)) (vxn(t0) vyn(t0)),...,
-	//   		(px1(tf) py1(tf)) (vx1(tf) vy1(tf)), ..., (pxn(tf) pyn(tf)) (vxn(tf) vyn(tf))
-	// Each episode maintains it's own row in the file. The number of robots, number of episodes, 
-	// and simulation dt is written at the top of the file
-	std::ofstream training_data_file("training_data.csv");
-	// training_data_file.open("training_data.csv", std::ofstream::out | std::ofstream::trunc);
-
+	/* Write header information */
 	training_data_file << n_agents << " Robots" << std::endl;
 	training_data_file << N_episodes << " Epsiodes" << std::endl;
 	training_data_file << dt << " Delta-t";
@@ -195,33 +161,33 @@ int main()
 
         /* Create a new simulator instance. */
         RVO::RVOSimulator *sim = new RVO::RVOSimulator();
+
+		/* Create vectors to store pos/vel for writing to file*/
 		RVO::Vector2 current_pos;
 		RVO::Vector2 current_vel;
 
         /* Set up a randomized scenario. */
         setupScenario(sim, n_agents, dim_world, dt);
 
-        /* Perform (and manipulate) the simulation. */
-		// int k = 1;
         do {
-			// std::cout << k++ << std::endl;
 
+			/* Write the current positions and velocities to file */
 			for (int p = 0; p < n_agents; p++){
 				current_pos = sim->getAgentPosition(p);
 				current_vel = sim->getAgentVelocity(p);
 				training_data_file << "("<< current_pos.x() << " " << current_pos.y() <<") (" << current_vel.x() << " " << current_vel.y() <<"), ";
 			}
 
-
-			updateVisualization(sim);
             setPreferredVelocities(sim);
             sim->doStep();
         }
+		/* Adjust goal threshold using the size of the world */
         while (!reachedGoal(sim, dim_world/100));
 
         delete sim;
     }
 
+	/* Write data file */
 	training_data_file.close();
 
 	return 0;
