@@ -84,27 +84,38 @@ def get_joint_state(s_robo1, s_robo2, radius, pgx, pgy, v_pref):
     return x
 
 def get_rotated_state(x):
-    raise NotImplementedError
-    rot = np.zeros(shape=(x.shape[0]+1))
-    rot[0] = np.norm(x[:2]-x[5:7], 2)
-    rot[1] = x[7]
-    rot[2:4] = x[2:4]
-    rot[4] = x[4]
-    rot[5] = x[8]
-    rot[6:8] = x[11:13]
-    rot[9:11] = x[9:11]-x[:2]
-    rot[11] = x[13]
-    rot[12] = x[13]+x[4]
-    rot[13] = np.cos(x[8])
-    rot[14] = np.sin(theta)
-    rot[15] = np.norm(x[:2]-x[9:11], 2)
+    Pg = x[5:7]
+    P = x[:2]
 
-def test_model():
-    input_shape = (14, )
-    model = create_model(input_shape)
+    #alpha is angle from original x to new x
+    alpha = np.arctan2(Pg[1]-Pg[0], P[1]-P[0])
+    R = np.array([
+        [np.cos(alpha), np.sin(alpha)],
+        [-np.sin(alpha), np.cos(alpha)]
+    ])
+    v_p = R@x[2:4]
+    theta = x[8]
+    theta_p = theta-alpha
+    rot = np.zeros(shape=(x.shape[0]+1))
+    rot[0] = np.linalg.norm(x[:2]-x[5:7], 2) #d_g
+    rot[1] = x[7] #v_pref
+    rot[2:4] = v_p #v_prime
+    rot[4] = x[4] # radius
+    rot[5] = theta_p #theta_prime
+    rot[6:8] = R@x[11:13] #v_tilde_prime ###OBS Uncertain###
+    rot[8:10] = R@(x[9:11]-x[:2]) #p_tilde_prime
+    rot[10] = x[13] #r_tilde
+    rot[11] = x[4] + x[13] #r +r_tilde
+    rot[12] = np.cos(theta_p)
+    rot[13] = np.sin(theta_p)
+    rot[14] = np.linalg.norm(x[:2]-x[9:11], 2)
+    return rot
+
+def load_traj_generate_data(folder):
+ 
     output_shape = (1,)
     #x, y = generate_random_training_data(input_shape, output_shape, N)
-    data = read_training_data("/home/torstein/Stanford/aa277/aa277_project/data/training_data_2sim_example.csv")
+    data = read_training_data("/home/torstein/Stanford/aa277/aa277_project/data/training_data.csv")
     
     robo1 = 0
     robo2 = 1
@@ -122,9 +133,11 @@ def test_model():
     #generating for robot1 first: 
     #after, we  can do the same for robot2
     for ep in range(episodes_count):
-        pgx = data.traj[ep].X[robo1][-1][0]
-        pgy = data.traj[ep].X[robo1][-1][1]
-        v_pref = 1 ###Arbitrary here...
+        traj = data.traj[ep]
+        pgx = traj.Pg[robo1][0]
+        pgy = traj.Pg[robo1][1]
+        Vmax = max(traj.Vmax[0], traj.Vmax[1])
+        v_pref = Vmax
         N = len(data.traj[ep].X[robo1])
         for i in range(N):
 
@@ -133,26 +146,44 @@ def test_model():
             state = get_joint_state(s_robo1, s_robo2, radius, pgx, pgy, v_pref)
             
             #should rotate state here...
-            
+            rotated_state = get_rotated_state(state)
             tg = i*dt
             y = gamma**(tg*v_pref)
-            xs.append(state)
+            xs.append(rotated_state)
             ys.append(y)
-            print(y)
-            print(state)
-    print(ys)
+
+
     xs, ys = np.array(xs), np.array(ys)
 
-    x_train = xs[:len(xs)//2]
-    y_train = ys[:len(ys)//2]
+    with open(f"{folder}/xs.npy", 'wb') as f:
+        np.save(f, xs)
+    with open(f"{folder}/ys.npy", 'wb') as f:
+        np.save(f, ys)
 
-    x_test = xs[len(xs)//2:]
-    y_test = ys[len(ys)//2:]
-    model = train_model(model, x_train, y_train, epochs=500)
+
+def test_model(folder):
+
+
+    with open(f"{folder}/xs.npy", 'rb') as f:
+        xs = np.load(f, allow_pickle=True)
+    with open(f"{folder}/ys.npy", 'rb') as f:
+        ys = np.load(f, allow_pickle=True)
+
+    input_shape = (xs[0].shape[0], )
+    model = create_model(input_shape)
+
+
+    split = 2*len(ys)//3
+    x_train = xs[:split]
+    y_train = ys[:split]
+
+    x_test = xs[split:]
+    y_test = ys[split:]
+    model = train_model(model, x_train, y_train, epochs=10)
     results = model.evaluate(x_test, y_test, batch_size=128)
     print(results)
     
-
-
-test_model()
+folder = "/home/torstein/Stanford/aa277/aa277_project/data"
+#load_traj_generate_data(folder)
+test_model(folder=folder)
 
