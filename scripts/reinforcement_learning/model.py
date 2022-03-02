@@ -147,7 +147,7 @@ def load_traj_generate_data(folder):
             
             #should rotate state here...
             rotated_state = get_rotated_state(state)
-            tg = i*dt
+            tg = (N-i)*dt
             y = gamma**(tg*v_pref)
             xs.append(rotated_state)
             ys.append(y)
@@ -161,7 +161,7 @@ def load_traj_generate_data(folder):
         np.save(f, ys)
 
 
-def test_model(folder):
+def get_training_data(folder):
 
 
     with open(f"{folder}/xs.npy", 'rb') as f:
@@ -169,9 +169,14 @@ def test_model(folder):
     with open(f"{folder}/ys.npy", 'rb') as f:
         ys = np.load(f, allow_pickle=True)
 
-    input_shape = (xs[0].shape[0], )
-    model = create_model(input_shape)
+    return xs, ys
 
+
+if __name__=='__main__': 
+    data_folder = "/home/torstein/Stanford/aa277/aa277_project/data"
+    #load_traj_generate_data(folder)
+    xs, ys = get_training_data(folder=data_folder)
+    model = create_model(xs[0].shape[0], )
 
     split = 2*len(ys)//3
     x_train = xs[:split]
@@ -180,10 +185,8 @@ def test_model(folder):
     x_test = xs[split:]
     y_test = ys[split:]
     model = train_model(model, x_train, y_train, epochs=10)
+    
     results = model.evaluate(x_test, y_test, batch_size=128)
     print(results)
-    
-folder = "/home/torstein/Stanford/aa277/aa277_project/data"
-#load_traj_generate_data(folder)
-test_model(folder=folder)
 
+    model.save(f"{data_folder}/model/trained_1000")
