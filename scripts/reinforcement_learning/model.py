@@ -23,7 +23,7 @@ import json
 # -----------------------------------------------------------------------------
 
 USER = 'Brian'
-# USER = 'Torstein'
+USER = 'Torstein'
 # USER = 'Valentin'
 # USER = 'Bradley'
 
@@ -251,7 +251,7 @@ def load_traj_generate_data(folder):
             
             #should rotate state here...
             rotated_state = get_rotated_state(state)
-            tg = (N-i)*dt
+            tg = i*dt
             y = gamma**(tg*v_pref)
             xs_rotated.append(rotated_state.tolist())
             xs.append(state.tolist())
@@ -298,12 +298,6 @@ def load_training_test_data(folder):
         xs = np.vstack([xs, np.asarray(x_dict[xk])])
         ys = np.concatenate((ys, np.asarray(y_dict[yk])))
 
-if __name__=='__main__': 
-    data_folder = "/home/torstein/Stanford/aa277/aa277_project/data"
-    #load_traj_generate_data(folder)
-    xs, ys = get_training_data(folder=data_folder)
-    model = create_model(xs[0].shape[0], )
-
     split = 2*len(ys)//3
 
     x_train = xs[:split]
@@ -338,4 +332,3 @@ if __name__ == '__main__':
     load_traj_generate_data(folder)
     test_model(folder=folder)
 
-    #model.save(f"{data_folder}/model/trained_1000")
