@@ -65,6 +65,7 @@ def train_model(model, x, y, epochs = 1000):
     return model
 
 def generate_random_training_data(input_shape, output_shape, N):
+    ##OBSOLETE
     inp = (N, ) + input_shape
     out = (N, ) + output_shape
     x = np.random.randn(*inp)
@@ -93,17 +94,17 @@ def get_joint_state2(s_robo1, s_robo2):
     dim = 14
     x = np.zeros((dim))
     x[:4] = s_robo1[:4]
-    x[4] = s_robo1[9] 
+    x[4] = s_robo1[4] 
     x[5] = s_robo1[5] 
     x[6] = s_robo1[6] 
     x[7] = s_robo1[7] 
     x[8] = s_robo1[8] 
     x[9:13] = s_robo2[:4]
-    x[13] = s_robo1[9] #radius1
+    x[13] = s_robo2[4] #radius1
     return x
 
 def get_state(s_robo1, radius, pgx, pgy, v_pref):
-    dim = 10
+    dim = 9
     vx = s_robo1[2]
     vy = s_robo1[3]
     theta = np.arctan2(vy,vx)
@@ -114,7 +115,6 @@ def get_state(s_robo1, radius, pgx, pgy, v_pref):
     x[6] = pgy 
     x[7] = v_pref
     x[8] = theta
-    x[9] = radius #radius1
     return x
 
 def get_rotated_state(x):
@@ -187,7 +187,7 @@ def load_traj_generate_data_not_joint(folder):
                 s_robo1 = data.traj[ep].X[robot][i]
                 state = get_state(s_robo1, radius, pgx, pgy, v_pref)
                 
-                tg = i*dt
+                tg = (N-i+1)*dt
                 y = gamma**(tg*v_pref)
                 xs.append(state.tolist())
                 ys.append(y.tolist())

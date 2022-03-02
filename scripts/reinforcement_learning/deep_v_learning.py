@@ -88,7 +88,7 @@ def CADRL(value_model, initial_state_1, initial_state_2):
 
         Doesn't work yet. Also haven't implemented epsilon-greedy exploration yet
     '''
-    dt = 0.02 # uncertain
+    dt = 0.1 # uncertain
     t  = 0
 
     # robot trajectories will be 10xT, where T is the total timesteps in the traj
@@ -104,7 +104,7 @@ def CADRL(value_model, initial_state_1, initial_state_2):
         t += dt
 
         v_filtered_1 = np.ma.average(x_1[2:4, :], axis=1, weights = np.exp(range(len(x_1[0])))) # weights the more recent scores more
-        v_filtered_2 = np.ma.average(x_2[2:4, :], axis=1, weights = np.exp(range(len(x_1[0])))) # weights the more recent scores more
+        v_filtered_2 = np.ma.average(x_2[2:4, :], axis=1, weights = np.exp(range(len(x_2[0])))) # weights the more recent scores more
 
         # Question: how do we set the velocities for the ~ robot in CADRL?
         # My feeling is we do both robots in CADRL simultaneously
@@ -113,7 +113,7 @@ def CADRL(value_model, initial_state_1, initial_state_2):
         x1_o_nxt = propagate_dynamics(x_1[:,-1], v_filtered_1, dt)
         x2_o_nxt = propagate_dynamics(x_2[:,-1], v_filtered_2, dt)
 
-        A = np.random.uniform(low=0.0, high=VMAX, size=(100, 2)) # TODO: how should we sample actions?
+        A = np.random.uniform(low=-VMAX, high=VMAX, size=(100, 2)) # TODO: how should we sample actions?
         # what should the size of these sampled actions be?
 
         gamma_bar_x1 = GAMMA**dt*x_1[7, -1]
