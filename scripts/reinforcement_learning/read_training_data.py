@@ -1,6 +1,7 @@
 import numpy as np
 import csv
 import os
+from tqdm import tqdm
 
 # USE IF RUNNING SCRIPT AS STANDALONE
 # cd = os.getcwd()
@@ -78,7 +79,7 @@ def read_training_data(filename:str)->TrainingData:
     with open(filename) as datafile:
         datareader = csv.reader(datafile, delimiter=',')
     
-        n_agents = datareader.__next__()[1] # Get the number of episodes
+        n_agents   = datareader.__next__()[1] # Get the number of episodes
         n_episodes = datareader.__next__()[1] # Get the number of agents
         dt         = datareader.__next__()[1] # Get the simulation timestep
 
@@ -87,20 +88,25 @@ def read_training_data(filename:str)->TrainingData:
         param_dict["n_agents"]   = int(n_agents)
         param_dict["dt"]         = float(dt)
 
+        print("Reading Data...")
+        print("   Simulations: {:s}".format(n_episodes))
+        print("   Agents:      {:s}".format(n_agents))
+        print("   Time Step:   {:s}".format(dt))
+
         # create dict to map episode to trajectories
         data = TrainingData(param_dict)
 
         # trajectory data is accessed as:
         # data.traj[episode].Px[agent][time_index])
 
-        for ep in range(data.n_episodes):
+        for ep in tqdm(range(data.n_episodes)):
             header_row = datareader.__next__()
             radius_row = datareader.__next__()
             vmax_row   = datareader.__next__()
             goal_row   = datareader.__next__()
             traj_row   = datareader.__next__()
 
-            print(header_row)
+            # print(header_row)
             for t in range(1,len(traj_row)-1,data.n_agents):
                 for ag in range(data.n_agents):
                     # strip new line character, remove parens, split at space
@@ -127,7 +133,7 @@ def read_training_data(filename:str)->TrainingData:
 
                 data.traj[ep].Pg[idx][0]   = float(g[1])
                 data.traj[ep].Pg[idx][1]   = float(g[2])
-
+    print("Data Succesfully Read.")
     return data
 
 

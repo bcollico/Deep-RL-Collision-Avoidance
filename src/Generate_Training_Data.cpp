@@ -39,7 +39,9 @@
 #include <cmath>
 #include <cstdlib>
 #include <fstream>
+#include <string>
 #include <iostream>
+#include <sstream> 
 #include <vector>
 #include <ctime>
 
@@ -53,7 +55,7 @@
 const float M_PI = 3.14159265358979323846f;
 #endif
 
-void setupScenario(RVO::RVOSimulator *sim, int n_agents, float dim_world, float dt, 
+void setupScenario(RVO::RVOSimulator *sim, int n_agents, std::vector<float> dim_world, float dt, 
 					std::vector<float> radius, std::vector<float> vmax, 
 					std::vector<RVO::Vector2> goals)
 {
@@ -65,23 +67,28 @@ void setupScenario(RVO::RVOSimulator *sim, int n_agents, float dim_world, float 
          float::timeHorizonObst, float::radius       , float::maxSpeed   , 
 	     const::Vector2 &velocity=Vector2() }
 	Adjust robot size and maximum speed based on the size of the world */
-	sim->setAgentDefaults(15.0f, 10, 5.0f, 5.0f, dim_world/100, dim_world/50);
+	sim->setAgentDefaults(15.0f, 10, 5.0f, 5.0f, dim_world[0]/100, dim_world[0]/50);
 
 	/*
 	 * Add agents, specifying their start position, and store their goals on the
 	 * opposite side of the environment.
 	 */
 
-    float range_x =  dim_world;
-    float range_y =  dim_world;
+    float range_x =  dim_world[0];
+    float range_y =  dim_world[1];
 
     float x, y; //, xg, yg;
 
     for (int i = 0; i < n_agents; ++i){
 		/* Assign random states and random goals to the agents */
-        x = range_x * (((float)rand()/RAND_MAX) - 0.5); // xg = range_x * (((float)rand()/RAND_MAX) - 0.5);
-        y = range_y * (((float)rand()/RAND_MAX) - 0.5); // yg = range_y * (((float)rand()/RAND_MAX) - 0.5);
-        sim->addAgent(RVO::Vector2(x, y));
+		/* Enforce odd numbered robots to left side */
+        // x = range_x * (((float)rand()/RAND_MAX) - 0.5); // xg = range_x * (((float)rand()/RAND_MAX) - 0.5);
+        // y = range_y * (((float)rand()/RAND_MAX) - 0.5); // yg = range_y * (((float)rand()/RAND_MAX) - 0.5);
+        x = dim_world[0] * pow(-1, ((i+1) % 2)) * (((float)rand()/RAND_MAX));
+		y = dim_world[1] * 2.0*(((float)rand()/RAND_MAX)-0.5);
+		sim->addAgent(RVO::Vector2(x, y));
+		sim->setAgentRadius(i, radius[i]);
+		sim->setAgentMaxSpeed(i, vmax[i]);
         // goals.push_back(RVO::Vector2(xg, yg));
     }
 }
@@ -128,6 +135,13 @@ bool reachedGoal(RVO::RVOSimulator *sim, float thresh, std::vector<RVO::Vector2>
 	return true;
 }
 
+bool runaway(int i_step, int step_max)
+{
+	/* Check if time is runaway. */
+
+	return i_step > step_max;
+}
+
 int main()
 {
 	/* Set randomizer seed. Fix this number to produce repeatable data */
@@ -140,31 +154,36 @@ int main()
 	bool homogeneous_vmax   = 1;		// True: All robots have same vmax  , False: Randomize each robot's vmax
 
 	/* Set Simulation Parameters*/
-	float dim_world 	= 10; 			// assumes square world with side length dim_world
-	float dt 			= 0.25;			// simulation time step
+	// std::vector<float> dim_world = {5.0, 2.5};
+	float dt 			= 0.1;			// simulation time step
 	int   n_agents 		= 2;			// number of agents to simulate
-    int   N_episodes 	= 2;			// number of simulated trajectories to generate
-	float rmax 			= dim_world/100;// maximum value for robot radius
-	float vmaxmax 		= dim_world/10;	// maximum value for vmax
-
+    int   N_episodes 	= 100;			// number of simulated trajectories to generate
+	float rmax 			= 1.0; // maximum value for robot radius
+	float vmaxmax 		= 1.0;	// maximum value for vmax
+	std::vector<float> dim_world = {5-rmax, (5-rmax)/2};
+	
 	/* Data File Row Organization:
 	Episode, (px1(t0) py1(t0)) (vx1(t0) vy1(t0)), ..., (pxn(t0) pyn(t0)) (vxn(t0) vyn(t0)),...,
 	  		 (px1(tf) py1(tf)) (vx1(tf) vy1(tf)), ..., (pxn(tf) pyn(tf)) (vxn(tf) vyn(tf))
 	Each episode maintains it's own row in the file. The number of robots, number of episodes, 
 	robot radii, robot vmaxs, and simulation dt is written at the top of the file */
 	std::ofstream training_data_file("data/training_data.csv");
+	std::stringstream buffer;
 
 	/* Write header information */
 	training_data_file << "Robots, " << n_agents << std::endl;
 	training_data_file << "Episodes, " << N_episodes << std::endl;
 	training_data_file << "T, " << dt << std::endl;
 
+	int i_step = 0;
+	int step_max = 100;
+
     while (episode < N_episodes){
 
-		training_data_file << "START " << ++episode << std::endl;
+		buffer << "START " << episode << std::endl;
 
-		std::vector<float> radius = {rmax};
-		std::vector<float> vmax   = {vmaxmax};
+		std::vector<float> radius;
+		std::vector<float> vmax;
 		std::vector<RVO::Vector2> goals;
 		float xg; float yg;
 		for (int i = 0; i < n_agents; i++){
@@ -182,36 +201,38 @@ int main()
 				/* If homogeneous, use same vmax for all agents */
 				vmax.push_back(vmaxmax);
 			} else {
-				/* Otherwise, assign a random radius with max of vmaxmax */
+				/* Otherwise, assign a random vmax with max of vmaxmax */
 				vmax.push_back(((float)rand()/RAND_MAX) * vmaxmax);
 			}
 
 			/* randomize goal state for each robot */
-			xg = dim_world * (((float)rand()/RAND_MAX) - 0.5);
-			yg = dim_world * (((float)rand()/RAND_MAX) - 0.5);
+			/* force even numbered robots to left side of plane 
+			   and odd numbered robots to right side of plane */
+			xg = dim_world[0] * pow(-1, (i % 2)) * (((float)rand()/RAND_MAX));
+			yg = dim_world[1] * 2.0*(((float)rand()/RAND_MAX)-0.5);
 			goals.push_back(RVO::Vector2(xg, yg));
 		}
 
-		training_data_file << "Radius, ";
+		buffer << "Radius, ";
 		for (int i = 0; i < n_agents-1; i++){
-			training_data_file << radius[i] << ", ";
+			buffer << radius[i] << ", ";
 		}
-		training_data_file << radius[n_agents-1] << std::endl;
+		buffer << radius[n_agents-1] << std::endl;
 
-		training_data_file << "Vmax, ";
+		buffer << "Vmax, ";
 		for (int i = 0; i < (n_agents-1); i++){
-			training_data_file << vmax[i] << ", ";
+			buffer << vmax[i] << ", ";
 		}
-		training_data_file << vmax[n_agents-1] << std::endl;
+		buffer << vmax[n_agents-1] << std::endl;
 		
-		training_data_file << "Goal, ";
+		buffer << "Goal, ";
 		for (int i = 0; i < (n_agents-1); i++){
-			training_data_file << "(" << goals[i].x() << " " << goals[i].y() << "), ";
+			buffer << "(" << goals[i].x() << " " << goals[i].y() << "), ";
 		}
-		training_data_file << "(" << goals[n_agents-1].x() << " " << goals[n_agents-1].y() << ")"<< std::endl;
+		buffer << "(" << goals[n_agents-1].x() << " " << goals[n_agents-1].y() << ")"<< std::endl;
 
         std::cout << "----- Generating Episode: " << episode << " -----" << std::endl;
-		training_data_file << episode;
+		buffer << episode;
 
         /* Create a new simulator instance. */
         RVO::RVOSimulator *sim = new RVO::RVOSimulator();
@@ -223,25 +244,35 @@ int main()
         /* Set up a randomized scenario. */
         setupScenario(sim, n_agents, dim_world, dt, radius, vmax, goals);
 
+		i_step = 0;
+
         do {
 
 			/* Write the current positions and velocities to file */
 			for (int p = 0; p < n_agents; p++){
 				current_pos = sim->getAgentPosition(p);
 				current_vel = sim->getAgentVelocity(p);
-				training_data_file << ", ("<< current_pos.x() << " " << current_pos.y() <<") (" << current_vel.x() << " " << current_vel.y() <<")";
+				buffer << ", ("<< current_pos.x() << " " << current_pos.y() <<") (" << current_vel.x() << " " << current_vel.y() <<")";
 			}
 
             setPreferredVelocities(sim, goals);
             sim->doStep();
+			i_step++;
         }
 		/* Adjust goal threshold using the size of the world */
-        while (!reachedGoal(sim, dim_world/100, goals));
+        while ((!reachedGoal(sim, dim_world[0]/100, goals) &&
+			   (!runaway(i_step, step_max))));
 
-		training_data_file << std::endl;
+		buffer << std::endl;
+
+		if (!runaway(i_step, step_max)) {
+			/* write buffer to file if successful */
+			training_data_file << buffer.str();
+			episode++;
+		}
 
         delete sim;
-		radius.clear(); vmax.clear(); goals.clear();
+		radius.clear(); vmax.clear(); goals.clear(); buffer.str(std::string());
     }
 
 	/* Write data file */
