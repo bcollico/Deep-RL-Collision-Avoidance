@@ -66,12 +66,18 @@ def reward(x1, x2, a, dt):
     	R = 0.0
 
     # experimental - trying to get robot to approach the goal
-    if np.linalg.norm(x1_nxt[0:2] - x1[5:7]) < np.linalg.norm(x1[0:2] - x1[5:7]):
-    	R += 20.
-    else:
-        R += -0.02
+    # if np.linalg.norm(x1_nxt[0:2] - x1[5:7]) < np.linalg.norm(x1[0:2] - x1[5:7]):
+    # 	R += 20.
+    # else:
+    #     R += -0.02
 
     return R
+
+def close_to_goal(x):
+	'''
+	condition for exiting the while loop in CADRL
+	'''
+	return np.linalg.norm(x[0:2, -1] - x[5:7, -1]) < 1e-1
 
 
 def CADRL(value_model, initial_state_1, initial_state_2):
@@ -82,16 +88,19 @@ def CADRL(value_model, initial_state_1, initial_state_2):
 
         Doesn't work yet. Also haven't implemented epsilon-greedy exploration yet
     '''
-    dt = 0.01 # uncertain
+    dt = 0.02 # uncertain
     t  = 0
 
     # robot trajectories will be 10xT, where T is the total timesteps in the traj
     x_1 = initial_state_1.reshape(-1, 1) # robot 1 state px, py, vx, vy, ...
     x_2 = initial_state_2.reshape(-1, 1) # robot 2 state px, py, vx, vy, ...
 
-    # while distance between robot 1 and goal is greater than eps
-    # need to update this condition to also consider something for robot 2
-    while np.linalg.norm(x_1[0:2, -1] - x_1[5:7, -1]) > 1e-1:
+    # x[0:2] - position
+    # x[2:4] - velocity
+    # x[5:7] - goal position
+
+    # while distance between robots and there goals is greater than eps
+    while not close_to_goal(x_1) and not close_to_goal(x_2):
         t += dt
 
         v_filtered_1 = np.ma.average(x_1[2:4, :], axis=1, weights = np.exp(range(len(x_1[0])))) # weights the more recent scores more
@@ -135,13 +144,15 @@ def CADRL(value_model, initial_state_1, initial_state_2):
 
         opt_action_1 = A[np.argmax(bellman_1)]
         opt_action_2 = A[np.argmax(bellman_2)]
-        
-        x_1 = np.append(x_1, propagate_dynamics(np.copy(x_1[:, -1]), opt_action_1, dt).reshape(-1, 1), axis=1)
-        x_2 = np.append(x_2, propagate_dynamics(np.copy(x_2[:, -1]), opt_action_2, dt).reshape(-1, 1), axis=1)
 
-        # print(np.linalg.norm(x_1[0:2, -1] - x_1[5:7, -1]))
-        print(x_1[5:7, -1])
-        print(x_1[0:2, -1])
+        if not close_to_goal(x_1):        
+	        x_1 = np.append(x_1, propagate_dynamics(np.copy(x_1[:, -1]), opt_action_1, dt).reshape(-1, 1), axis=1)
+        if not close_to_goal(x_2):
+	        x_2 = np.append(x_2, propagate_dynamics(np.copy(x_2[:, -1]), opt_action_2, dt).reshape(-1, 1), axis=1)
+
+        print(np.linalg.norm(x_1[0:2, -1] - x_1[5:7, -1]))
+        # print(x_1[5:7, -1])
+        # print(x_1[0:2, -1])
 
         # print(t)
 
