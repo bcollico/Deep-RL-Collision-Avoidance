@@ -45,14 +45,16 @@ def propagate_dynamics(x, v, dt):
 
     return x
 
-def reward(x1, x2):
+def reward(x1, x2, a, dt):
     '''
     Reward function for robot 1 only, given joint state (parametrized by 2 individual states)
     '''
-    d = np.linalg.norm(x1[::2] - x2[::2]) # is this how to calculate d? 
+    d = np.linalg.norm(x1[0:2] - x2[0:2]) # is this how to calculate d? 
     #Doesn't seem so. How can dmin be less than 0 like in the paper?
 
     eps = 1e-2
+
+    x1_nxt = propagate_dynamics(np.copy(x1), a, dt)
 
     if d < 0:
         R = -0.25
@@ -61,7 +63,13 @@ def reward(x1, x2):
     elif np.linalg.norm(x1[5:7] - x1[0:2]) < eps:
         R = 1
     else:
-        R = 0
+    	R = 0.0
+
+    # experimental - trying to get robot to approach the goal
+    if np.linalg.norm(x1_nxt[0:2] - x1[5:7]) < np.linalg.norm(x1[0:2] - x1[5:7]):
+    	R += 20.
+    else:
+        R += -0.02
 
     return R
 
@@ -82,7 +90,8 @@ def CADRL(value_model, initial_state_1, initial_state_2):
     x_2 = initial_state_2.reshape(-1, 1) # robot 2 state px, py, vx, vy, ...
 
     # while distance between robot 1 and goal is greater than eps
-    while np.linalg.norm(x_1[0:2] - x_1[5:7]) > 1e-2:
+    # need to update this condition to also consider something for robot 2
+    while np.linalg.norm(x_1[0:2, -1] - x_1[5:7, -1]) > 1e-1:
         t += dt
 
         v_filtered_1 = np.ma.average(x_1[2:4, :], axis=1, weights = np.exp(range(len(x_1[0])))) # weights the more recent scores more
@@ -118,8 +127,8 @@ def CADRL(value_model, initial_state_1, initial_state_2):
             x2_joint_rotated = model.get_rotated_state(x2_joint)
 
             # does our action have no impact on reward here? should we feed it the propagated state?
-            R1 = reward(x_1[:, -1], x_2[:, -1])
-            R2 = reward(x_2[:, -1], x_1[:, -1])
+            R1 = reward(x_1[:, -1], x_2[:, -1], a, dt)
+            R2 = reward(x_2[:, -1], x_1[:, -1], a, dt)
 
             bellman_1[idx] = R1 + gamma_bar_x1 * value_model(x1_joint_rotated.reshape(1,-1))
             bellman_2[idx] = R2 + gamma_bar_x2 * value_model(x2_joint_rotated.reshape(1,-1))
@@ -130,7 +139,9 @@ def CADRL(value_model, initial_state_1, initial_state_2):
         x_1 = np.append(x_1, propagate_dynamics(np.copy(x_1[:, -1]), opt_action_1, dt).reshape(-1, 1), axis=1)
         x_2 = np.append(x_2, propagate_dynamics(np.copy(x_2[:, -1]), opt_action_2, dt).reshape(-1, 1), axis=1)
 
-        print(np.linalg.norm(x_1[0:2] - x_1[5:7]))
+        # print(np.linalg.norm(x_1[0:2, -1] - x_1[5:7, -1]))
+        print(x_1[5:7, -1])
+        print(x_1[0:2, -1])
 
         # print(t)
 
@@ -164,6 +175,6 @@ if __name__ == '__main__':
                 rand_idx_2 = np.random.randint(0, high=len(x_ep_dict[ep].keys()))
 
             # algorithm 2 line 9
-            s_1, s_2 = CADRL(value_model, x_ep_dict[ep][rand_idx_1], x_ep_dict[ep][rand_idx_2])
+            s_1, s_2 = CADRL(value_model, x_ep_dict[ep][rand_idx_1][0], x_ep_dict[ep][rand_idx_2][0])
 
     import pdb;pdb.set_trace()
