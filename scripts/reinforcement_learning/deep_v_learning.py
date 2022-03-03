@@ -3,11 +3,16 @@ import tensorflow as tf
 import os
 import model
 import json
+from matplotlib import pyplot as plt
+from matplotlib.animation import FuncAnimation
+import matplotlib.animation as animation
+from visualize_traj import animate
 
 N_EPISODES = 100
 M          = 10
-GAMMA      = 0.99
+GAMMA      = 0.8
 VMAX       = 1.0 #??
+#TODO: add epsilon greedy
 
 USER = 'Brian'
 # USER = 'Torstein'
@@ -122,6 +127,26 @@ def close_to_goal(x):
     '''
     return np.linalg.norm(get_pos(x) - get_goal(x)) < 1e-1
 
+def plot_animation(Pg1, Pg2, X_robo1, X_robo2, radius1, radius2):
+    fig = plt.figure()
+    ax1 = fig.add_subplot(1,1,1)
+    xlimits = [-5,5]
+    ylimits = [-2.5, 2.5]
+    ax1.set_xlim(xlimits)
+    ax1.set_ylim(ylimits)
+
+    anim = FuncAnimation(fig, animate, interval=100, fargs=(Pg1,
+            Pg2,
+            X_robo1,
+            X_robo2,
+            radius1,
+            radius2,
+            ax1))
+    pth = os.path.join(folder, 'dummy.mp4')
+    writervideo = animation.FFMpegWriter(fps=20) 
+    anim.save(pth, writer=writervideo)
+    plt.show()
+
 
 def CADRL(value_model, initial_state_1, initial_state_2):
     '''
@@ -198,9 +223,20 @@ def CADRL(value_model, initial_state_1, initial_state_2):
         if not close_to_goal(x_1):        
             x_1 = np.append(x_1, propagate_dynamics(get_current_state(x_1), opt_action_1, dt).reshape(-1, 1), axis=1)
         if not close_to_goal(x_2):
-            x_2 = np.append(x_2, propagate_dynamics(get_current_state(x_1), opt_action_2, dt).reshape(-1, 1), axis=1)
+            x_2 = np.append(x_2, propagate_dynamics(get_current_state(x_2), opt_action_2, dt).reshape(-1, 1), axis=1)
 
         print(np.linalg.norm(get_pos(x_1) - get_goal(x_1)))
+        # print(np.linalg.norm(get_pos(x_2) - get_goal(x_2)))
+
+        if n_timesteps_x1 > 100:
+
+            plot_animation(get_goal(x_1),
+                           get_goal(x_2),
+                           x_1[0:2, :].T,
+                           x_2[0:2, :].T,
+                           get_radius(x_1),
+                           get_radius(x_2))
+
 
     return x_1, x_2
 
@@ -234,6 +270,11 @@ if __name__ == '__main__':
                 rand_idx_2 = np.random.randint(0, high=len(x_ep_dict[rand_ep].keys()))
 
             # algorithm 2 line 9
-            s_1, s_2 = CADRL(value_model, x_ep_dict[rand_ep][rand_idx_1][0], x_ep_dict[rand_ep][rand_idx_2][0])
+            s_initial_1 = x_ep_dict[rand_ep][rand_idx_1][0]
+            s_initial_2 = x_ep_dict[rand_ep][rand_idx_2][0]
+            print(rand_idx_1)
+            print(rand_idx_2)
+
+            s_1, s_2 = CADRL(value_model, s_initial_1, s_initial_2)
 
     import pdb;pdb.set_trace()

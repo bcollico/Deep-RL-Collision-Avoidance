@@ -6,12 +6,6 @@ import numpy as np
 from model import USER
 import os
 
-fig = plt.figure()
-ax1 = fig.add_subplot(1,1,1)
-xlimits = [-5,5]
-ylimits = [-2.5, 2.5]
-ax1.set_xlim(xlimits)
-ax1.set_ylim(ylimits)
 if USER == 'Brian':
 	folder  = '/home/bdobkowski/Stanford/AA277/aa277_project/data'
 elif USER == 'Torstein':
@@ -22,7 +16,7 @@ else:
 	raise Exception('Need to set user folder')
 
 data = read_training_data(os.path.join(folder, 'training_data_100sim.csv'))
-episode = 78
+episode = 33
 robo1 = 0
 robo2 = 1
 
@@ -35,7 +29,15 @@ radius1 = traj.R[robo1]
 radius2 = traj.R[robo2]
 
 # print(X_robo1)
-def animate(i):
+def animate(i, 
+            Pg1,
+            Pg2,
+            X_robo1,
+            X_robo2,
+            radius1,
+            radius2,
+            ax1):
+
     if i >=len(X_robo1):
         return
     pos1 = np.array([X_robo1[i][0], X_robo1[i][1]])
@@ -61,8 +63,8 @@ def animate(i):
         ax1.plot(X_robo1[0:i+1, 0], X_robo1[0:i+1, 1], linestyle='--', color='b')
         ax1.plot(X_robo2[0:i+1, 0], X_robo2[0:i+1, 1], linestyle='--', color='g')
 
-    ax1.set_xlim(xlimits)
-    ax1.set_ylim(ylimits)
+    ax1.set_xlim([-5,5])
+    ax1.set_ylim([-2.5, 2.5])
     ax1.set_aspect( 1 )
     ax1.add_artist( robo1 )
     ax1.add_artist( robo2 )
@@ -71,8 +73,19 @@ def animate(i):
     plt.legend()
 
 if __name__=='__main__':
+
+    fig = plt.figure()
+    ax1 = fig.add_subplot(1,1,1)
+
+    import pdb;pdb.set_trace()
     
-    anim = FuncAnimation(fig, animate, interval=100)
+    anim = FuncAnimation(fig, animate, interval=100, fargs=(Pg1,
+            Pg2,
+            X_robo1,
+            X_robo2,
+            radius1,
+            radius2,
+            ax1))
     pth = os.path.join(folder, 'dummy.mp4')
     writervideo = animation.FFMpegWriter(fps=20) 
     anim.save(pth, writer=writervideo)
