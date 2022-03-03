@@ -66,8 +66,9 @@ def test_random_state(x):
 
 if __name__ == '__main__':
     dim = 14
-    x = np.random.randn(dim)
     for i in range(1000):
+        x = np.random.randn(dim)
+
         if not test_random_state(x):
             print(rotate_their(x), get_rotated_state(x))
             
