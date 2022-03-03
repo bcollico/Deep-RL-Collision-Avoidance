@@ -23,7 +23,7 @@ import json
 # -----------------------------------------------------------------------------
 
 USER = 'Brian'
-# USER = 'Torstein'
+USER = 'Torstein'
 # USER = 'Valentin'
 # USER = 'Bradley'
 
@@ -37,12 +37,11 @@ def state_value_pair(s_jn, t_g, v_pref, gamma):
 
 def create_model(input_shape=15):
     output_shape = 1
-    # hidden_neurons = 30
     
     model = tf.keras.Sequential([
         tf.keras.layers.Input(shape=input_shape),
         tf.keras.layers.Dense(150, activation = "relu", name="layer1"), 
-        tf.keras.layers.Dense(120, activation = "relu", name="layer2"), 
+        tf.keras.layers.Dense(100, activation = "relu", name="layer2"), 
         tf.keras.layers.Dense(100, activation = "relu", name="layer3"), 
         tf.keras.layers.Dense(output_shape, name="final_layer", 
                 kernel_regularizer=tf.keras.regularizers.l1_l2(l1=1e-8, l2=1e-7))
@@ -52,17 +51,28 @@ def create_model(input_shape=15):
 
     return model
 
-def train_model(model, x, y, epochs = 1000):
+def train_model(model, x, y, epochs = 250):
+    BATCH_SIZE = 100
+    LR = 0.01
+    MOMENTUM=0.9
+    step_size = 150
 
-    optimizer = tf.keras.optimizers.Adam(learning_rate=1e-3)
+    optimizer = tf.keras.optimizers.SGD(learning_rate=LR, momentum=0.9)
     loss = tf.keras.losses.MeanSquaredError()
-    # callbacks = [tf.keras.callbacks.EarlyStopping(monitor="loss", patience=30)]
+
+    import math
+    def scheduler(epoch):
+        init = LR
+        gamma = 0.1
+        return init* math.pow(gamma,  
+           math.floor((1+epoch)/step_size))
+    lr_scheduler = tf.keras.callbacks.LearningRateScheduler(scheduler, verbose=0)
 
 
     model.compile(optimizer = optimizer, loss = loss,  
             steps_per_execution=10)
-    # model.fit(x, y, epochs = epochs, callbacks = callbacks)
-    model.fit(x, y, epochs = epochs)
+    model.fit(x, y, epochs = epochs, batch_size=BATCH_SIZE,
+    callbacks=[lr_scheduler])
 
     return model
 
