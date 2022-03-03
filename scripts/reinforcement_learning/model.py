@@ -124,7 +124,7 @@ def get_rotated_state(x):
     P = x[:2]
 
     #alpha is angle from original x to new x
-    alpha = np.arctan2(Pg[1]-Pg[0], P[1]-P[0])
+    alpha = np.arctan2(Pg[1]-P[1], Pg[0]-P[0])
     R = np.array([
         [np.cos(alpha), np.sin(alpha)],
         [-np.sin(alpha), np.cos(alpha)]
