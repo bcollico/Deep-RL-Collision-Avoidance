@@ -7,9 +7,11 @@ from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 import matplotlib.animation as animation
 from visualize_traj import animate
+from model import LR
 
-N_EPISODES = 100
-M          = 10
+N_EPISODES = 3
+C          = 1
+M          = 1
 GAMMA      = 0.8
 VMAX       = 1.0 #??
 #TODO: add epsilon greedy
@@ -112,7 +114,7 @@ def reward(x1, x2, a, dt):
         end_time = dmin_time
     else:
         end_time = 1
-        if dmin < get_radius(x1) + get_radius(x2) * 2 + 0.2:
+        if dmin < get_radius(x1) + get_radius(x2) + 0.2:
             R = -0.1 - dmin/2
         elif close_to_goal(x1_nxt):
             R = 1
@@ -135,10 +137,24 @@ def plot_animation(Pg1, Pg2, X_robo1, X_robo2, radius1, radius2):
     ax1.set_xlim(xlimits)
     ax1.set_ylim(ylimits)
 
+    if len(X_robo1) > len(X_robo2):
+        x2 = np.zeros((len(X_robo1), 2))
+        x2[0:len(X_robo2)] = X_robo2
+        x2[len(X_robo2):] = X_robo2[-1]
+        x1 = X_robo1
+    elif len(X_robo2) > len(X_robo1):
+        x1 = np.zeros((len(X_robo2), 2))
+        x1[0:len(X_robo1)] = X_robo1
+        x1[len(X_robo1):] = X_robo1[-1]
+        x2 = X_robo2
+    else:
+        x1 = X_robo1
+        x2 = X_robo2
+
     anim = FuncAnimation(fig, animate, interval=100, fargs=(Pg1,
             Pg2,
-            X_robo1,
-            X_robo2,
+            x1,
+            x2,
             radius1,
             radius2,
             ax1))
@@ -147,6 +163,31 @@ def plot_animation(Pg1, Pg2, X_robo1, X_robo2, radius1, radius2):
     anim.save(pth, writer=writervideo)
     plt.show()
 
+def create_train_set_from_dict(x_dict, y_dict):
+
+    dim_rot_joint_state = 15
+    xs = np.array([]).reshape((0, dim_rot_joint_state))
+    ys = np.array([])
+
+    for xk, yk in zip(x_dict.keys(), y_dict.keys()):
+
+        x1_joint = model.get_joint_state_vectorized(x_dict[xk][0], x_dict[xk][1])
+        x2_joint = model.get_joint_state_vectorized(x_dict[xk][1], x_dict[xk][0])
+
+        x1_joint_rotated = np.apply_along_axis(model.get_rotated_state, 1, x1_joint)
+        x2_joint_rotated = np.apply_along_axis(model.get_rotated_state, 1, x2_joint)
+
+        xs = np.vstack([xs, x1_joint_rotated])
+        xs = np.vstack([xs, x2_joint_rotated])
+
+        try:
+            ys = np.concatenate((ys, y_dict[yk][0]))
+            ys = np.concatenate((ys, y_dict[yk][1]))
+        except:
+            ys = np.concatenate((ys, y_dict[yk][0].numpy().flatten()))
+            ys = np.concatenate((ys, y_dict[yk][1].numpy().flatten()))
+
+    return xs, ys
 
 def CADRL(value_model, initial_state_1, initial_state_2):
     '''
@@ -170,7 +211,7 @@ def CADRL(value_model, initial_state_1, initial_state_2):
     # x[5:7] - goal position
 
     # while distance between robots and there goals is greater than eps
-    while not close_to_goal(x_1) and not close_to_goal(x_2):
+    while (not close_to_goal(x_1)) or (not close_to_goal(x_2)):
         t += dt
 
         n_timesteps_x1 = len(x_1[0])
@@ -186,10 +227,10 @@ def CADRL(value_model, initial_state_1, initial_state_2):
         x1_o_nxt = propagate_dynamics(get_current_state(x_1), v_filtered_1, dt)
         x2_o_nxt = propagate_dynamics(get_current_state(x_2), v_filtered_2, dt)
 
-        num_sampled_actions = 100
+        num_sampled_actions = 50
 
-        A = np.random.uniform(low=-VMAX, high=VMAX, size=(num_sampled_actions, 2)) # TODO: how should we sample actions?
-        # what should the size of these sampled actions be?
+        A = np.random.uniform(low=-VMAX, high=VMAX, size=(num_sampled_actions-1, 2)) # TODO: how should we sample actions?
+        A = np.append(A, np.array([[0, 0]]), axis=0)
 
         gamma_bar_x1 = GAMMA**dt*get_vpref(x_1)
         gamma_bar_x2 = GAMMA**dt*get_vpref(x_2)
@@ -228,27 +269,49 @@ def CADRL(value_model, initial_state_1, initial_state_2):
         print(np.linalg.norm(get_pos(x_1) - get_goal(x_1)))
         # print(np.linalg.norm(get_pos(x_2) - get_goal(x_2)))
 
-        if n_timesteps_x1 > 100:
+        if n_timesteps_x1 > 75 or n_timesteps_x2 > 75:
 
-            plot_animation(get_goal(x_1),
-                           get_goal(x_2),
-                           x_1[0:2, :].T,
-                           x_2[0:2, :].T,
-                           get_radius(x_1),
-                           get_radius(x_2))
+            # plot_animation(get_goal(x_1),
+            #                get_goal(x_2),
+            #                x_1[0:2, :].T,
+            #                x_2[0:2, :].T,
+            #                get_radius(x_1),
+            #                get_radius(x_2))
 
+            return x_1.T, x_2.T, False
 
-    return x_1, x_2
+    # plot_animation(get_goal(x_1),
+    #                get_goal(x_2),
+    #                x_1[0:2, :].T,
+    #                x_2[0:2, :].T,
+    #                get_radius(x_1),
+    #                get_radius(x_2))
 
+    return x_1.T, x_2.T, True
+
+def loss(y_est, y):
+    '''
+    MSE loss
+    '''
+    import pdb;pdb.set_trace()
+    shape_y = tf.cast(tf.shape(y), dtype=tf.float32)
+    return tf.divide(tf.reduce_sum(tf.square(y_est - y)), shape_y[0])
 
 if __name__ == '__main__':
 
+    optimizer = tf.keras.optimizers.SGD(learning_rate=LR, momentum=0.9)
+
     # algorithm 2 line 4
     value_model = tf.keras.models.load_model(folder)
+    # value_model = tf.keras.models.load_model(os.path.join(folder, 'initial_value_model'))
+    value_model_prime = value_model
 
     # algorithm 2 line 5
-    x_dict, y_dict = load_training_test_data(folder)
+    # x_dict, y_dict = load_training_test_data(folder)
     x_ep_dict, y_ep_dict = model.load_traj_generate_data_not_joint(folder)
+
+    x_experience = x_ep_dict.copy()
+    y_experience = y_ep_dict.copy()
 
     # x_ep_dict is a dictionary with following pattern:
     # x_ep_dict[1] is all robot traj data for episode 1
@@ -269,12 +332,58 @@ if __name__ == '__main__':
             while rand_idx_2 == rand_idx_1:
                 rand_idx_2 = np.random.randint(0, high=len(x_ep_dict[rand_ep].keys()))
 
+            # FOR TESTING ONLY
+            # rand_ep = 74
+            # rand_idx_1 = 1
+            # rand_idx_2 = 0
+
             # algorithm 2 line 9
+            # should we be choosing data from experience set or dataset here?
             s_initial_1 = x_ep_dict[rand_ep][rand_idx_1][0]
             s_initial_2 = x_ep_dict[rand_ep][rand_idx_2][0]
-            print(rand_idx_1)
-            print(rand_idx_2)
+            print(f'Random episode: {rand_ep}')
+            print(f'Random robot 1: {rand_idx_1}')
+            print(f'Random robot 2: {rand_idx_2}')
 
-            s_1, s_2 = CADRL(value_model, s_initial_1, s_initial_2)
+            # s_1, s_2 are Tx9, 9 being the state dimension
+            s_1, s_2, cadrl_successful = CADRL(value_model, s_initial_1, s_initial_2)
 
-    import pdb;pdb.set_trace()
+            if cadrl_successful:
+
+                print('CADRL Successful!')
+
+                # trajectories s1 and s2 are different lengths
+                x1_joint = model.get_joint_state_vectorized(s_1, s_2)
+                x2_joint = model.get_joint_state_vectorized(s_2, s_1)
+
+                x1_joint_rotated = np.apply_along_axis(model.get_rotated_state, 1, x1_joint)
+                x2_joint_rotated = np.apply_along_axis(model.get_rotated_state, 1, x2_joint)
+                
+                # algorithm 2 line 10
+                y_1 = value_model_prime(x1_joint_rotated)
+                y_2 = value_model_prime(x2_joint_rotated)
+
+                # algorithm 2 line 11
+                x_experience[rand_ep][rand_idx_1] = s_1
+                x_experience[rand_ep][rand_idx_2] = s_2
+                y_experience[rand_ep][rand_idx_1] = y_1
+                y_experience[rand_ep][rand_idx_2] = y_2
+
+        # algorithm 2 line 12
+        x_train, y_train = create_train_set_from_dict(x_experience, y_experience)
+        n_entries = x_train.shape[0]
+        subset_idx = np.random.choice(n_entries, int(np.floor(n_entries/4)), replace=False)
+
+        # algorithm 2 line 13
+        with tf.GradientTape() as tape:
+            y_est = value_model(x_train[subset_idx])
+            current_loss = loss(y_est, y_train[subset_idx])  
+        grads = tape.gradient(current_loss, value_model.trainable_weights)  
+        optimizer.apply_gradients(zip(grads, value_model.trainable_weights)) 
+
+        # algorithm 2 line 14-15
+        if np.mod(training_ep, C) == 0:
+            # evaluate value model here...
+            value_model_prime = value_model
+
+    value_model.save(os.path.join(folder, 'post_RL_value_model'))

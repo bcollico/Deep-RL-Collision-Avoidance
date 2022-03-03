@@ -23,9 +23,15 @@ import json
 # -----------------------------------------------------------------------------
 
 USER = 'Brian'
-USER = 'Torstein'
+# USER = 'Torstein'
 # USER = 'Valentin'
 # USER = 'Bradley'
+
+# training params
+BATCH_SIZE = 100
+LR = 0.01
+MOMENTUM=0.9
+step_size = 150
 
 def state_value_pair(s_jn, t_g, v_pref, gamma):
     y = gamma**(t_g*v_pref)
@@ -52,10 +58,6 @@ def create_model(input_shape=15):
     return model
 
 def train_model(model, x, y, epochs = 250):
-    BATCH_SIZE = 100
-    LR = 0.01
-    MOMENTUM=0.9
-    step_size = 150
 
     optimizer = tf.keras.optimizers.SGD(learning_rate=LR, momentum=0.9)
     loss = tf.keras.losses.MeanSquaredError()
@@ -115,6 +117,28 @@ def get_joint_state2(s_robo1, s_robo2):
     x[13] = s_robo2[4] #radius1
     return x
 
+def get_joint_state_vectorized(traj_1, traj_2):
+    dim = 14
+    len_1 = traj_1.shape[0]
+    len_2 = traj_2.shape[0]
+    x = np.zeros((len_1, dim))
+    x[:,:4] = traj_1[:,:4]
+    x[:,4] = traj_1[:,4] 
+    x[:,5] = traj_1[:,5] 
+    x[:,6] = traj_1[:,6] 
+    x[:,7] = traj_1[:,7] 
+    x[:,8] = traj_1[:,8] 
+    if len_1 <= len_2:
+        x[:,9:13] = traj_2[:len_1,:4]
+        x[:,13] = traj_2[:len_1,4] #radius1
+    else:
+        x[:len_2,9:13] = traj_2[:,:4]
+        x[len_2:,9:13] = traj_2[-1,:4]
+        x[:len_2,13] = traj_2[:,4] #radius1
+        x[len_2:,13] = traj_2[-1,4] #radius1
+
+    return x
+
 def get_state(s_robo1, radius, pgx, pgy, v_pref):
     dim = 9
     vx = s_robo1[2]
@@ -161,7 +185,7 @@ def load_traj_generate_data_not_joint(folder):
  
     output_shape = (1,)
     # data = read_training_data(os.path.join(folder, 'training_data_2sim_example.csv'))
-    data = read_training_data(os.path.join(folder, 'training_data_100sim.csv'))
+    data = read_training_data(os.path.join(folder, 'training_data_1000sim.csv'))
     
     robo1 = 0
     robo2 = 1
@@ -198,7 +222,7 @@ def load_traj_generate_data_not_joint(folder):
                 s_robo1 = data.traj[ep].X[robot][i]
                 state = get_state(s_robo1, radius, pgx, pgy, v_pref)
                 
-                tg = (N-i+1)*dt
+                tg = (N-i)*dt
                 y = gamma**(tg*v_pref)
                 xs.append(state.tolist())
                 ys.append(y.tolist())
@@ -223,7 +247,7 @@ def load_traj_generate_data(folder):
  
     output_shape = (1,)
     # data = read_training_data(os.path.join(folder, 'training_data_2sim_example.csv'))
-    data = read_training_data(os.path.join(folder, 'training_data_100sim.csv'))
+    data = read_training_data(os.path.join(folder, 'training_data_1000sim.csv'))
     
     robo1 = 0
     robo2 = 1
@@ -261,7 +285,7 @@ def load_traj_generate_data(folder):
             
             #should rotate state here...
             rotated_state = get_rotated_state(state)
-            tg = i*dt
+            tg = (N-i)*dt
             y = gamma**(tg*v_pref)
             xs_rotated.append(rotated_state.tolist())
             xs.append(state.tolist())
@@ -330,7 +354,7 @@ def test_model(folder):
     results = model.evaluate(x_test, y_test, batch_size=128)
     print(results)
 
-    model.save(folder)
+    model.save(os.path.join(folder, 'initial_value_model'))
 
 if __name__ == '__main__':
     if USER == 'Torstein':
