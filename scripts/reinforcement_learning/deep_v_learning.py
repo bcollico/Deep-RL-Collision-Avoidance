@@ -47,9 +47,13 @@ def propagate_dynamics(x, v, dt):
 
     # TODO: incorporate kinematic constraints?
 
-    x[0:2] = x[0:2] + dt* v
-
-    return x
+    try:
+        a, b = x.shape
+        x[:, 0:2] = x[:, 0:2] + dt* v
+        return x
+    except:
+        x[0:2] = x[0:2] + dt* v
+        return x
 
 def get_goal(x):
     try:
@@ -241,6 +245,20 @@ def CADRL(value_model, initial_state_1, initial_state_2):
         lookahead_1 = np.zeros(num_sampled_actions)
         lookahead_2 = np.zeros(num_sampled_actions)
 
+        # attempt at vectorizing this A loop
+
+        # curr_state_1 = np.repeat(get_current_state(x_1), repeats=num_sampled_actions, axis=0)
+        # curr_state_2 = np.repeat(get_current_state(x_2), repeats=num_sampled_actions, axis=0)
+
+        # x1_nxt = propagate_dynamics(curr_state_1, A, dt)
+        # x2_nxt = propagate_dynamics(curr_state_2, A, dt)
+
+        # x1_joint = model.get_joint_state_vectorized(s_1, s_2)
+        # x2_joint = model.get_joint_state_vectorized(s_2, s_1)
+
+        # x1_joint_rotated = np.apply_along_axis(model.get_rotated_state, 1, x1_joint)
+        # x2_joint_rotated = np.apply_along_axis(model.get_rotated_state, 1, x2_joint)
+
         for idx, a in enumerate(A):
             x1_nxt[idx] = propagate_dynamics(get_current_state(x_1), a, dt)
             x2_nxt[idx] = propagate_dynamics(get_current_state(x_2), a, dt)
@@ -271,21 +289,21 @@ def CADRL(value_model, initial_state_1, initial_state_2):
 
         if n_timesteps_x1 > 75 or n_timesteps_x2 > 75:
 
-            # plot_animation(get_goal(x_1),
-            #                get_goal(x_2),
-            #                x_1[0:2, :].T,
-            #                x_2[0:2, :].T,
-            #                get_radius(x_1),
-            #                get_radius(x_2))
+            plot_animation(get_goal(x_1),
+                           get_goal(x_2),
+                           x_1[0:2, :].T,
+                           x_2[0:2, :].T,
+                           get_radius(x_1),
+                           get_radius(x_2))
 
             return x_1.T, x_2.T, False
 
-    # plot_animation(get_goal(x_1),
-    #                get_goal(x_2),
-    #                x_1[0:2, :].T,
-    #                x_2[0:2, :].T,
-    #                get_radius(x_1),
-    #                get_radius(x_2))
+    plot_animation(get_goal(x_1),
+                   get_goal(x_2),
+                   x_1[0:2, :].T,
+                   x_2[0:2, :].T,
+                   get_radius(x_1),
+                   get_radius(x_2))
 
     return x_1.T, x_2.T, True
 
@@ -293,7 +311,6 @@ def loss(y_est, y):
     '''
     MSE loss
     '''
-    import pdb;pdb.set_trace()
     shape_y = tf.cast(tf.shape(y), dtype=tf.float32)
     return tf.divide(tf.reduce_sum(tf.square(y_est - y)), shape_y[0])
 
@@ -302,8 +319,7 @@ if __name__ == '__main__':
     optimizer = tf.keras.optimizers.SGD(learning_rate=LR, momentum=0.9)
 
     # algorithm 2 line 4
-    value_model = tf.keras.models.load_model(folder)
-    # value_model = tf.keras.models.load_model(os.path.join(folder, 'initial_value_model'))
+    value_model = tf.keras.models.load_model(os.path.join(folder, 'initial_value_model'))
     value_model_prime = value_model
 
     # algorithm 2 line 5
@@ -377,7 +393,7 @@ if __name__ == '__main__':
         # algorithm 2 line 13
         with tf.GradientTape() as tape:
             y_est = value_model(x_train[subset_idx])
-            current_loss = loss(y_est, y_train[subset_idx])  
+            current_loss = loss(y_est, y_train[subset_idx].reshape(-1,1))  
         grads = tape.gradient(current_loss, value_model.trainable_weights)  
         optimizer.apply_gradients(zip(grads, value_model.trainable_weights)) 
 
