@@ -7,13 +7,17 @@ from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 import matplotlib.animation as animation
 from visualize_traj import animate
+import random
 from model import LR
 
-N_EPISODES = 10
-C          = 1
-M          = 4
+N_EPISODES = 50
+C          = 4
+M          = 20
 GAMMA      = 0.8
 VMAX       = 1.0 #??
+DT         = 0.2
+# EPS_GREEDY = 0.1 # probability with which a random action is chosen
+# epsilon greedy should decay from 0.5 to 0.1 linearly
 #TODO: add epsilon greedy
 
 USER = 'Brian'
@@ -164,6 +168,16 @@ def close_to_goal(x):
     '''
     return np.linalg.norm(get_pos(x) - get_goal(x)) < 1e-1
 
+def robots_intersect(x1, x2):
+    '''
+    Do the robots intersect during their trajectory?
+    '''
+    r1 = get_radius(x1)
+    r2 = get_radius(x2)
+    min_length = np.minimum(len(x1), len(x2))
+    distances = np.linalg.norm(x1[0:min_length,0:2] - x2[0:min_length,0:2], axis=1)
+    return np.any(distances<=r1+r2)
+
 def plot_animation(Pg1, Pg2, X_robo1, X_robo2, radius1, radius2):
     fig = plt.figure()
     ax1 = fig.add_subplot(1,1,1)
@@ -224,7 +238,12 @@ def create_train_set_from_dict(x_dict, y_dict):
 
     return xs, ys
 
-def CADRL(value_model, initial_state_1, initial_state_2):
+def find_y_values(x_1, dt):
+    # Calculating gamma**(tg*v_pref) for training with these trajectories 
+    ttg_1 = (len(x_1)*np.ones(len(x_1)) - range(len(x_1))) * dt
+    y_1   = GAMMA**(get_vpref(x_1)*ttg_1)
+
+def CADRL(value_model, initial_state_1, initial_state_2, epsilon, dt):
     '''
         Algorithm 1: CADRL (Collision Avoidance with Deep RL)
 
@@ -232,7 +251,6 @@ def CADRL(value_model, initial_state_1, initial_state_2):
 
         Doesn't work yet. Also haven't implemented epsilon-greedy exploration yet
     '''
-    dt = 0.1 # uncertain
     t  = 0
 
     # robot trajectories will be Tx9, where T is the total timesteps in the traj
@@ -296,6 +314,11 @@ def CADRL(value_model, initial_state_1, initial_state_2):
         lookahead_1 = R1 + gamma_bar_x1 * value_model(x1_joint_rotated)
         lookahead_2 = R2 + gamma_bar_x2 * value_model(x2_joint_rotated)
 
+        try:
+            assert np.all(value_model(x1_joint_rotated)<1.0)
+        except:
+            import pdb;pdb.set_trace()
+
         #####################################################################################3
 
         # x1_nxt__ = np.zeros((num_sampled_actions, state_dim))
@@ -337,9 +360,15 @@ def CADRL(value_model, initial_state_1, initial_state_2):
         #     import pdb;pdb.set_trace()
 
         ######################################################################################################
+        if random.random() < epsilon:
+            opt_action_1 = random.choice(A)
+        else:
+            opt_action_1 = A[np.argmax(lookahead_1)]
 
-        opt_action_1 = A[np.argmax(lookahead_1)]
-        opt_action_2 = A[np.argmax(lookahead_2)]
+        if random.random() < epsilon:
+            opt_action_2 = random.choice(A)
+        else:
+            opt_action_2 = A[np.argmax(lookahead_2)]
 
         if not close_to_goal(x_1):        
             x_1 = np.append(x_1, propagate_dynamics(get_current_state(x_1), opt_action_1, dt).reshape(1, -1), axis=0)
@@ -353,8 +382,8 @@ def CADRL(value_model, initial_state_1, initial_state_2):
 
             # plot_animation(get_goal(x_1),
             #                get_goal(x_2),
-            #                x_1[0:2, :].T,
-            #                x_2[0:2, :].T,
+            #                x_1[:, 0:2],
+            #                x_2[:, 0:2],
             #                get_radius(x_1),
             #                get_radius(x_2))
 
@@ -362,12 +391,22 @@ def CADRL(value_model, initial_state_1, initial_state_2):
 
     # plot_animation(get_goal(x_1),
     #                get_goal(x_2),
-    #                x_1[0:2, :].T,
-    #                x_2[0:2, :].T,
+    #                x_1[:, 0:2],
+    #                x_2[:, 0:2],
     #                get_radius(x_1),
     #                get_radius(x_2))
 
-    return x_1, x_2, True
+    if robots_intersect(x_1, x_2):
+        plot_animation(get_goal(x_1),
+                       get_goal(x_2),
+                       x_1[:, 0:2],
+                       x_2[:, 0:2],
+                       get_radius(x_1),
+                       get_radius(x_2))
+
+        return x_1, x_2, False
+    else:
+        return x_1, x_2, True
 
 def loss(y_est, y):
     '''
@@ -375,6 +414,10 @@ def loss(y_est, y):
     '''
     shape_y = tf.cast(tf.shape(y), dtype=tf.float32)
     return tf.divide(tf.reduce_sum(tf.square(y_est - y)), shape_y[0])
+
+def add_cooperation_penalty(y_1, y_2):
+    # need to implement this function - what is dg exactly?
+    pass
 
 if __name__ == '__main__':
 
@@ -424,22 +467,26 @@ if __name__ == '__main__':
             # print(f'Random robot 2: {rand_idx_2}')
 
             # s_1, s_2 are Tx9, 9 being the state dimension
-            s_1, s_2, cadrl_successful = CADRL(value_model, s_initial_1, s_initial_2)
+            s_1, s_2, cadrl_successful = CADRL(value_model, s_initial_1, s_initial_2, 0.2, DT)
 
             if cadrl_successful:
 
                 print('CADRL Successful!')
 
                 # trajectories s1 and s2 are different lengths
-                x1_joint = model.get_joint_state_vectorized(s_1, s_2)
-                x2_joint = model.get_joint_state_vectorized(s_2, s_1)
+                # x1_joint = model.get_joint_state_vectorized(s_1, s_2)
+                # x2_joint = model.get_joint_state_vectorized(s_2, s_1)
 
-                x1_joint_rotated = np.apply_along_axis(model.get_rotated_state, 1, x1_joint)
-                x2_joint_rotated = np.apply_along_axis(model.get_rotated_state, 1, x2_joint)
+                # x1_joint_rotated = np.apply_along_axis(model.get_rotated_state, 1, x1_joint)
+                # x2_joint_rotated = np.apply_along_axis(model.get_rotated_state, 1, x2_joint)
                 
                 # algorithm 2 line 10
-                y_1 = value_model_prime(x1_joint_rotated)
-                y_2 = value_model_prime(x2_joint_rotated)
+                # this is not done correctly, we have to actually back out the values for gamma^tg*vpref
+                y_1 = find_y_values(s_1, DT)
+                y_2 = find_y_values(s_2, DT)
+
+                # need to implement this function - it's empty now
+                add_cooperation_penalty(y_1, y_2)
 
                 # algorithm 2 line 11
                 x_experience[rand_ep][rand_idx_1] = s_1

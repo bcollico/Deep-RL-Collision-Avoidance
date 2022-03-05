@@ -33,13 +33,17 @@ LR = 0.01
 MOMENTUM=0.9
 step_size = 150
 
+class Clip(tf.keras.layers.Layer):
+  def __init__(self):
+    super(Clip, self).__init__()
+
+  def call(self, inputs):
+    return tf.clip_by_value(inputs, clip_value_min=0.0, clip_value_max=0.99)
+
 def state_value_pair(s_jn, t_g, v_pref, gamma):
     y = gamma**(t_g*v_pref)
     joint = np.append(s_jn, y)
     return joint
-
-
-
 
 def create_model(input_shape=15):
     output_shape = 1
@@ -50,8 +54,8 @@ def create_model(input_shape=15):
         tf.keras.layers.Dense(100, activation = "relu", name="layer2"), 
         tf.keras.layers.Dense(100, activation = "relu", name="layer3"), 
         tf.keras.layers.Dense(output_shape, name="final_layer", 
-                kernel_regularizer=tf.keras.regularizers.l1_l2(l1=1e-8, l2=1e-7))
-
+                kernel_regularizer=tf.keras.regularizers.l1_l2(l1=1e-8, l2=1e-7)),
+        Clip()
     ])
     model.summary()
 
@@ -133,9 +137,9 @@ def get_joint_state_vectorized(traj_1, traj_2):
         x[:,13] = traj_2[:len_1,4] #radius1
     else:
         x[:len_2,9:13] = traj_2[:,:4]
-        x[len_2:,9:13] = traj_2[-1,:4]
+        x[len_2:,9:13] = traj_2[-1,:4] # repeating last state
         x[:len_2,13] = traj_2[:,4] #radius1
-        x[len_2:,13] = traj_2[-1,4] #radius1
+        x[len_2:,13] = traj_2[-1,4] # repeating last state
 
     return x
 
@@ -185,7 +189,7 @@ def load_traj_generate_data_not_joint(folder):
  
     output_shape = (1,)
     # data = read_training_data(os.path.join(folder, 'training_data_2sim_example.csv'))
-    data = read_training_data(os.path.join(folder, 'training_data_1000sim.csv'))
+    data = read_training_data(os.path.join(folder, 'training_data_100sim.csv'))
     
     robo1 = 0
     robo2 = 1
@@ -203,7 +207,6 @@ def load_traj_generate_data_not_joint(folder):
     #generating for robot1 first: 
     #after, we  can do the same for robot2
     for ep in range(episodes_count):
-
         x_robot_dict = {}
         y_robot_dict = {}
 
@@ -247,7 +250,7 @@ def load_traj_generate_data(folder):
  
     output_shape = (1,)
     # data = read_training_data(os.path.join(folder, 'training_data_2sim_example.csv'))
-    data = read_training_data(os.path.join(folder, 'training_data_1000sim.csv'))
+    data = read_training_data(os.path.join(folder, 'training_data_100sim.csv'))
     
     robo1 = 0
     robo2 = 1
@@ -266,7 +269,6 @@ def load_traj_generate_data(folder):
     #generating for robot1 first: 
     #after, we  can do the same for robot2
     for ep in range(episodes_count):
-
         xs_rotated = []
         xs = []
         ys = []
