@@ -8,6 +8,9 @@ from matplotlib.animation import FuncAnimation
 import matplotlib.animation as animation
 from visualize_traj import animate
 
+from utils import load_nn_data, load_traj_data, get_nn_input
+from state_definitions import get_joint_state, get_rotated_state
+
 N_EPISODES = 100
 M          = 10
 GAMMA      = 0.8
@@ -15,7 +18,7 @@ VMAX       = 1.0 #??
 #TODO: add epsilon greedy
 
 USER = 'Brian'
-# USER = 'Torstein'
+USER = 'Torstein'
 # USER = 'Valentin'
 # USER = 'Bradley'
 
@@ -130,8 +133,8 @@ def close_to_goal(x):
 def plot_animation(Pg1, Pg2, X_robo1, X_robo2, radius1, radius2):
     fig = plt.figure()
     ax1 = fig.add_subplot(1,1,1)
-    xlimits = [-5,5]
-    ylimits = [-2.5, 2.5]
+    xlimits = [-15,15]
+    ylimits = [-25, 25]
     ax1.set_xlim(xlimits)
     ax1.set_ylim(ylimits)
 
@@ -204,11 +207,11 @@ def CADRL(value_model, initial_state_1, initial_state_2):
             x1_nxt[idx] = propagate_dynamics(get_current_state(x_1), a, dt)
             x2_nxt[idx] = propagate_dynamics(get_current_state(x_2), a, dt)
 
-            x1_joint = model.get_joint_state2(x1_nxt[idx], x2_o_nxt)
-            x2_joint = model.get_joint_state2(x2_nxt[idx], x1_o_nxt)
+            x1_joint = get_joint_state(x1_nxt[idx], x2_o_nxt)
+            x2_joint = get_joint_state(x2_nxt[idx], x1_o_nxt)
 
-            x1_joint_rotated = model.get_rotated_state(x1_joint)
-            x2_joint_rotated = model.get_rotated_state(x2_joint)
+            x1_joint_rotated = get_rotated_state(x1_joint)
+            x2_joint_rotated = get_rotated_state(x2_joint)
 
             # does our action have no impact on reward here? should we feed it the propagated state?
             R1 = reward(get_current_state(x_1), get_current_state(x_2), a, dt)
@@ -247,14 +250,17 @@ if __name__ == '__main__':
     value_model = tf.keras.models.load_model(folder)
 
     # algorithm 2 line 5
-    x_dict, y_dict = load_training_test_data(folder)
-    x_ep_dict, y_ep_dict = model.load_traj_generate_data_not_joint(folder)
+    x_ep_dict, v_pref, dt = load_traj_data(folder)
+    #x_dict_rotated, y_dict = get_nn_input(x_ep_dict, v_pref, dt)
 
+    #x_dict_, y_dict = load_training_test_data(folder)
+    #x_ep_dict, y_ep_dict = model.load_traj_generate_data_not_joint(folder)
+   
     # x_ep_dict is a dictionary with following pattern:
     # x_ep_dict[1] is all robot traj data for episode 1
     # x_ep_dict[1][2] is robot 2 traj data for episode 1
     # x_ep_dict[1][2][3] is timestep 3 for robot 2 in episode 1
-    # x_ep_dict[1][2][3] is 10-dimensional, and contains the state from get_state() in model.py
+    # x_ep_dict[1][2][3] is 9-dimensional, and contains the state from get_state() in model.py
 
     # y_ep_dict is constructed the same way
 

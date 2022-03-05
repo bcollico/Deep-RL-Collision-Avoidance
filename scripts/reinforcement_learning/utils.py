@@ -8,8 +8,8 @@ GAMMA = 0.8
 
 def load_traj_data(folder):
  
-    #data = read_training_data(os.path.join(folder, 'training_data_2sim_example.csv'))
-    data = read_training_data(os.path.join(folder, 'training_data.csv'))
+    data = read_training_data(os.path.join(folder, 'training_data_2sim_example.csv'))
+    #data = read_training_data(os.path.join(folder, 'training_data.csv'))
 
     dt = data.dt
     radius = 1.0
@@ -39,9 +39,9 @@ def load_traj_data(folder):
                 
                 s_robo_i = data.traj[ep].X[i][timestep]
                 state_i = get_state(s_robo_i, radius, pgx_i, pgy_i, v_pref)
-                xs.append(state_i.tolist())
+                xs.append(state_i)
 
-            x_robot_dict[i] = xs
+            x_robot_dict[i] = np.array(xs)
 
         x_ep_dict[ep] = x_robot_dict
 
