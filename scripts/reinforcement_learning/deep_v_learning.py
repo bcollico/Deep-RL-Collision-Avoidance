@@ -9,9 +9,9 @@ import matplotlib.animation as animation
 from visualize_traj import animate
 from model import LR
 
-N_EPISODES = 3
+N_EPISODES = 10
 C          = 1
-M          = 1
+M          = 4
 GAMMA      = 0.8
 VMAX       = 1.0 #??
 #TODO: add epsilon greedy
@@ -40,12 +40,14 @@ def load_training_test_data(folder):
 
     return x_dict, y_dict
 
-def propagate_dynamics(x, v, dt):
+def propagate_dynamics(xx, v, dt):
     '''
        Single integrator robot dynamics
     '''
 
     # TODO: incorporate kinematic constraints?
+
+    x = np.copy(xx)
 
     try:
         a, b = x.shape
@@ -58,40 +60,40 @@ def propagate_dynamics(x, v, dt):
 def get_goal(x):
     try:
         a, b = x.shape
-        return x[5:7, -1]
+        return x[-1, 5:7]
     except:
         return x[5:7]
 
 def get_pos(x):
     try:
         a, b = x.shape
-        return x[0:2, -1]
+        return x[-1, 0:2]
     except:
         return x[0:2]
 
 def get_vel(x):
     try:
         a, b = x.shape
-        return x[2:4, -1]
+        return x[-1, 2:4]
     except:
         return x[2:4]
 
 def get_vpref(x):
     try:
         a, b = x.shape
-        return x[7, -1]
+        return x[-1, 7]
     except:
         return x[7]
 
 def get_radius(x):
     try:
         a, b = x.shape
-        return x[4, -1]
+        return x[-1, 4]
     except:
         return x[4]
 
 def get_current_state(x):
-    return np.copy(x[:, -1])
+    return np.copy(x[-1, :])
 
 def reward(x1, x2, a, dt):
     '''
@@ -126,6 +128,35 @@ def reward(x1, x2, a, dt):
             R = 0
 
     return R
+
+def reward_vectorized(x1, x2, a, dt):
+    '''
+    Reward function for robot 1 only, given joint state (parametrized by 2 individual states)
+    '''
+    x2_const_vel = x2[:, 2:4]
+
+    # below adapted from public CADRL repo
+    num_interps = 5
+    dist = 10000*np.ones((len(a), num_interps))
+    for idx, frac in enumerate(np.linspace(0, 1, num=num_interps)):
+        time = frac*dt
+        x1_states = propagate_dynamics(x1, a, time)
+        x2_states = propagate_dynamics(x2, x2_const_vel, time)
+        dist[:, idx] = np.linalg.norm(x1_states[:, 0:2] - x2_states[:, 0:2], axis=1)
+
+    dmin = np.min(dist, axis=1)
+
+    x1_nxt = propagate_dynamics(x1, a, dt)
+
+    R = np.zeros(len(a))
+    goal_close = np.linalg.norm(x1_nxt[:, 0:2] - x1_nxt[:, 5:7], axis=1) < 1e-1
+    R[goal_close] = 1
+    dmin_idx = dmin < get_radius(x1.T) + get_radius(x2.T) + 0.2
+    R[dmin_idx] = np.multiply(-0.1 - dmin[dmin_idx]/2, np.ones(len(dmin[dmin_idx])))
+    dmin_idx_2 = dmin < get_radius(x1.T) + get_radius(x2.T)
+    R[dmin_idx_2] = -0.25
+
+    return R.reshape(-1, 1)
 
 def close_to_goal(x):
     '''
@@ -204,9 +235,9 @@ def CADRL(value_model, initial_state_1, initial_state_2):
     dt = 0.1 # uncertain
     t  = 0
 
-    # robot trajectories will be 9xT, where T is the total timesteps in the traj
-    x_1 = initial_state_1.reshape(-1, 1) # robot 1 state px, py, vx, vy, ...
-    x_2 = initial_state_2.reshape(-1, 1) # robot 2 state px, py, vx, vy, ...
+    # robot trajectories will be Tx9, where T is the total timesteps in the traj
+    x_1 = initial_state_1.reshape(1, -1) # robot 1 state px, py, vx, vy, ...
+    x_2 = initial_state_2.reshape(1, -1) # robot 2 state px, py, vx, vy, ...
 
     state_dim = initial_state_1.shape[0]
 
@@ -218,11 +249,11 @@ def CADRL(value_model, initial_state_1, initial_state_2):
     while (not close_to_goal(x_1)) or (not close_to_goal(x_2)):
         t += dt
 
-        n_timesteps_x1 = len(x_1[0])
-        n_timesteps_x2 = len(x_2[0])
+        n_timesteps_x1 = len(x_1)
+        n_timesteps_x2 = len(x_2)
 
-        v_filtered_1 = np.ma.average(x_1[2:4, :], axis=1, weights = np.exp(range(n_timesteps_x1))) # weights the more recent scores more
-        v_filtered_2 = np.ma.average(x_2[2:4, :], axis=1, weights = np.exp(range(n_timesteps_x2))) # weights the more recent scores more
+        v_filtered_1 = np.ma.average(x_1[:, 2:4], axis=0, weights = np.exp(range(n_timesteps_x1))) # weights the more recent scores more
+        v_filtered_2 = np.ma.average(x_2[:, 2:4], axis=0, weights = np.exp(range(n_timesteps_x2))) # weights the more recent scores more
 
         # Question: how do we set the velocities for the ~ robot in CADRL?
         # My feeling is we do both robots in CADRL simultaneously
@@ -234,78 +265,109 @@ def CADRL(value_model, initial_state_1, initial_state_2):
         num_sampled_actions = 50
 
         A = np.random.uniform(low=-VMAX, high=VMAX, size=(num_sampled_actions-1, 2)) # TODO: how should we sample actions?
-        A = np.append(A, np.array([[0, 0]]), axis=0)
+        A = np.append(A, np.array([[0, 0]]), axis=0) # adding option to do nothing (if robot is at goal)
 
-        gamma_bar_x1 = GAMMA**dt*get_vpref(x_1)
-        gamma_bar_x2 = GAMMA**dt*get_vpref(x_2)
+        gamma_bar_x1 = GAMMA**(dt*get_vpref(x_1))
+        gamma_bar_x2 = GAMMA**(dt*get_vpref(x_2))
 
         x1_nxt = np.zeros((num_sampled_actions, state_dim))
         x2_nxt = np.zeros((num_sampled_actions, state_dim))
 
-        lookahead_1 = np.zeros(num_sampled_actions)
-        lookahead_2 = np.zeros(num_sampled_actions)
-
         # attempt at vectorizing this A loop
 
-        # curr_state_1 = np.repeat(get_current_state(x_1), repeats=num_sampled_actions, axis=0)
-        # curr_state_2 = np.repeat(get_current_state(x_2), repeats=num_sampled_actions, axis=0)
+        curr_state_1 = np.repeat(get_current_state(x_1).reshape(1,-1), repeats=num_sampled_actions, axis=0)
+        curr_state_2 = np.repeat(get_current_state(x_2).reshape(1,-1), repeats=num_sampled_actions, axis=0)
 
-        # x1_nxt = propagate_dynamics(curr_state_1, A, dt)
-        # x2_nxt = propagate_dynamics(curr_state_2, A, dt)
+        x1_nxt = propagate_dynamics(curr_state_1, A, dt)
+        x2_nxt = propagate_dynamics(curr_state_2, A, dt)
 
-        # x1_joint = model.get_joint_state_vectorized(s_1, s_2)
-        # x2_joint = model.get_joint_state_vectorized(s_2, s_1)
+        x1_o_nxt_all = np.repeat(x1_o_nxt.reshape(1,-1), repeats=num_sampled_actions, axis=0)
+        x2_o_nxt_all = np.repeat(x2_o_nxt.reshape(1,-1), repeats=num_sampled_actions, axis=0)
 
-        # x1_joint_rotated = np.apply_along_axis(model.get_rotated_state, 1, x1_joint)
-        # x2_joint_rotated = np.apply_along_axis(model.get_rotated_state, 1, x2_joint)
+        x1_joint = model.get_joint_state_vectorized(x1_nxt, x2_o_nxt_all)
+        x2_joint = model.get_joint_state_vectorized(x2_nxt, x1_o_nxt_all)
 
-        for idx, a in enumerate(A):
-            x1_nxt[idx] = propagate_dynamics(get_current_state(x_1), a, dt)
-            x2_nxt[idx] = propagate_dynamics(get_current_state(x_2), a, dt)
+        x1_joint_rotated = np.apply_along_axis(model.get_rotated_state, 1, x1_joint)
+        x2_joint_rotated = np.apply_along_axis(model.get_rotated_state, 1, x2_joint)
 
-            x1_joint = model.get_joint_state2(x1_nxt[idx], x2_o_nxt)
-            x2_joint = model.get_joint_state2(x2_nxt[idx], x1_o_nxt)
+        R1 = reward_vectorized(curr_state_1, curr_state_2, A, dt)
+        R2 = reward_vectorized(curr_state_2, curr_state_1, A, dt)
 
-            x1_joint_rotated = model.get_rotated_state(x1_joint)
-            x2_joint_rotated = model.get_rotated_state(x2_joint)
+        lookahead_1 = R1 + gamma_bar_x1 * value_model(x1_joint_rotated)
+        lookahead_2 = R2 + gamma_bar_x2 * value_model(x2_joint_rotated)
 
-            # does our action have no impact on reward here? should we feed it the propagated state?
-            R1 = reward(get_current_state(x_1), get_current_state(x_2), a, dt)
-            R2 = reward(get_current_state(x_2), get_current_state(x_1), a, dt)
+        #####################################################################################3
 
-            lookahead_1[idx] = R1 + gamma_bar_x1 * value_model(x1_joint_rotated.reshape(1,-1))
-            lookahead_2[idx] = R2 + gamma_bar_x2 * value_model(x2_joint_rotated.reshape(1,-1))
+        # x1_nxt__ = np.zeros((num_sampled_actions, state_dim))
+        # x2_nxt__ = np.zeros((num_sampled_actions, state_dim))
+
+        # lookahead_1__ = np.zeros(num_sampled_actions)
+        # lookahead_2__ = np.zeros(num_sampled_actions)
+
+        # for idx, a in enumerate(A):
+        #     x1_nxt__[idx] = propagate_dynamics(get_current_state(x_1), a, dt)
+        #     x2_nxt__[idx] = propagate_dynamics(get_current_state(x_2), a, dt)
+
+        #     x1_joint__ = model.get_joint_state2(x1_nxt__[idx], x2_o_nxt)
+        #     x2_joint__ = model.get_joint_state2(x2_nxt__[idx], x1_o_nxt)
+
+        #     x1_joint_rotated__ = model.get_rotated_state(x1_joint__)
+        #     x2_joint_rotated__ = model.get_rotated_state(x2_joint__)
+
+        #     assert np.linalg.norm(x1_joint_rotated__ - x1_joint_rotated[idx]) < 1e-4
+        #     assert np.linalg.norm(x2_joint_rotated__ - x2_joint_rotated[idx]) < 1e-4
+
+        #     # does our action have no impact on reward here? should we feed it the propagated state?
+        #     R1__ = reward(get_current_state(x_1), get_current_state(x_2), a, dt)
+        #     R2__ = reward(get_current_state(x_2), get_current_state(x_1), a, dt)
+
+        #     try:
+        #         assert np.linalg.norm(R1[idx] - R1__) < 1e-4
+        #         assert np.linalg.norm(R2[idx] - R2__) < 1e-4
+        #     except:
+        #         import pdb;pdb.set_trace()
+
+        #     lookahead_1__[idx] = R1__ + gamma_bar_x1 * value_model(x1_joint_rotated__.reshape(1,-1))
+        #     lookahead_2__[idx] = R2__ + gamma_bar_x2 * value_model(x2_joint_rotated__.reshape(1,-1))
+
+        # try:
+        #     assert np.linalg.norm(lookahead_1 - lookahead_1__.reshape(-1, 1)) < 1e-3
+        #     assert np.linalg.norm(lookahead_2 - lookahead_2__.reshape(-1, 1)) < 1e-3
+        # except:
+        #     import pdb;pdb.set_trace()
+
+        ######################################################################################################
 
         opt_action_1 = A[np.argmax(lookahead_1)]
         opt_action_2 = A[np.argmax(lookahead_2)]
 
         if not close_to_goal(x_1):        
-            x_1 = np.append(x_1, propagate_dynamics(get_current_state(x_1), opt_action_1, dt).reshape(-1, 1), axis=1)
+            x_1 = np.append(x_1, propagate_dynamics(get_current_state(x_1), opt_action_1, dt).reshape(1, -1), axis=0)
         if not close_to_goal(x_2):
-            x_2 = np.append(x_2, propagate_dynamics(get_current_state(x_2), opt_action_2, dt).reshape(-1, 1), axis=1)
+            x_2 = np.append(x_2, propagate_dynamics(get_current_state(x_2), opt_action_2, dt).reshape(1, -1), axis=0)
 
-        print(np.linalg.norm(get_pos(x_1) - get_goal(x_1)))
+        # print(np.linalg.norm(get_pos(x_1) - get_goal(x_1)))
         # print(np.linalg.norm(get_pos(x_2) - get_goal(x_2)))
 
         if n_timesteps_x1 > 75 or n_timesteps_x2 > 75:
 
-            plot_animation(get_goal(x_1),
-                           get_goal(x_2),
-                           x_1[0:2, :].T,
-                           x_2[0:2, :].T,
-                           get_radius(x_1),
-                           get_radius(x_2))
+            # plot_animation(get_goal(x_1),
+            #                get_goal(x_2),
+            #                x_1[0:2, :].T,
+            #                x_2[0:2, :].T,
+            #                get_radius(x_1),
+            #                get_radius(x_2))
 
-            return x_1.T, x_2.T, False
+            return x_1, x_2, False
 
-    plot_animation(get_goal(x_1),
-                   get_goal(x_2),
-                   x_1[0:2, :].T,
-                   x_2[0:2, :].T,
-                   get_radius(x_1),
-                   get_radius(x_2))
+    # plot_animation(get_goal(x_1),
+    #                get_goal(x_2),
+    #                x_1[0:2, :].T,
+    #                x_2[0:2, :].T,
+    #                get_radius(x_1),
+    #                get_radius(x_2))
 
-    return x_1.T, x_2.T, True
+    return x_1, x_2, True
 
 def loss(y_est, y):
     '''
@@ -358,8 +420,8 @@ if __name__ == '__main__':
             s_initial_1 = x_ep_dict[rand_ep][rand_idx_1][0]
             s_initial_2 = x_ep_dict[rand_ep][rand_idx_2][0]
             print(f'Random episode: {rand_ep}')
-            print(f'Random robot 1: {rand_idx_1}')
-            print(f'Random robot 2: {rand_idx_2}')
+            # print(f'Random robot 1: {rand_idx_1}')
+            # print(f'Random robot 2: {rand_idx_2}')
 
             # s_1, s_2 are Tx9, 9 being the state dimension
             s_1, s_2, cadrl_successful = CADRL(value_model, s_initial_1, s_initial_2)
