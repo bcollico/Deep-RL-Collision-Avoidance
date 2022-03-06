@@ -157,7 +157,7 @@ int main()
 	// std::vector<float> dim_world = {5.0, 2.5};
 	float dt 			= 0.1;			// simulation time step
 	int   n_agents 		= 2;			// number of agents to simulate
-    int   N_episodes 	= 100;			// number of simulated trajectories to generate
+    int   N_episodes 	= 1000;			// number of simulated trajectories to generate
 	float rmax 			= 1.0; // maximum value for robot radius
 	float vmaxmax 		= 1.0;	// maximum value for vmax
 	std::vector<float> dim_world = {5-rmax, (5-rmax)/2};

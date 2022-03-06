@@ -15,8 +15,8 @@ elif USER == 'Bradley':
 else:
 	raise Exception('Need to set user folder')
 
-data = read_training_data(os.path.join(folder, 'training_data_100sim.csv'))
-episode = 33
+data = read_training_data(os.path.join(folder, 'training_data_1000sim.csv'))
+episode = 199
 robo1 = 0
 robo2 = 1
 
@@ -76,8 +76,6 @@ if __name__=='__main__':
 
     fig = plt.figure()
     ax1 = fig.add_subplot(1,1,1)
-
-    #import pdb;pdb.set_trace()
     
     anim = FuncAnimation(fig, animate, interval=100, fargs=(Pg1,
             Pg2,

@@ -22,9 +22,27 @@ import math
 # -----------------------------------------------------------------------------
 from utils import load_nn_data, load_traj_data, get_nn_input
 USER = 'Brian'
-USER = 'Torstein'
+# USER = 'Torstein'
 # USER = 'Valentin'
 # USER = 'Bradley'
+
+# training params
+BATCH_SIZE = 100
+LR = 0.01
+MOMENTUM=0.9
+step_size = 150
+
+class Clip(tf.keras.layers.Layer):
+  def __init__(self):
+    super(Clip, self).__init__()
+
+  def call(self, inputs):
+    return tf.clip_by_value(inputs, clip_value_min=0.0, clip_value_max=0.99)
+
+def state_value_pair(s_jn, t_g, v_pref, gamma):
+    y = gamma**(t_g*v_pref)
+    joint = np.append(s_jn, y)
+    return joint
 
 def create_model(input_shape=15):
     output_shape = 1
@@ -34,19 +52,15 @@ def create_model(input_shape=15):
         tf.keras.layers.Dense(150, activation = "relu", name="layer1"), 
         tf.keras.layers.Dense(100, activation = "relu", name="layer2"), 
         tf.keras.layers.Dense(100, activation = "relu", name="layer3"), 
-        tf.keras.layers.Dense(output_shape, name="final_layer")
-                #kernel_regularizer=tf.keras.regularizers.l1_l2(l1=1e-8, l2=1e-7))
-
+        tf.keras.layers.Dense(output_shape, name="final_layer", 
+                kernel_regularizer=tf.keras.regularizers.l1_l2(l1=1e-8, l2=1e-7)),
+        Clip()
     ])
     model.summary()
 
     return model
 
 def train_model(model, x, y, epochs = 250):
-    BATCH_SIZE = 100
-    LR = 0.01
-    MOMENTUM=0.9
-    step_size = 150
 
     optimizer = tf.keras.optimizers.SGD(learning_rate=LR, momentum=MOMENTUM)
     loss = tf.keras.losses.MeanSquaredError()
@@ -81,7 +95,7 @@ def nn_training(model_folder=None, epochs=1000, x_dict=None, y_dict=None):
     results = model.evaluate(x_test, y_test, batch_size=128)
     print(results)
 
-    model.save(folder)
+    model.save(os.path.join(folder, 'initial_value_model'))
 
 if __name__ == '__main__':
     if USER == 'Torstein':
