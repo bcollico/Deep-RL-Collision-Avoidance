@@ -8,14 +8,14 @@ from matplotlib.animation import FuncAnimation
 import matplotlib.animation as animation
 from visualize_traj import animate
 import random
-from model import LR
 
-from utils import load_nn_data, load_traj_data, get_nn_input
-from state_definitions import get_joint_state, get_rotated_state
+from state_definitions import  get_joint_state, get_rotated_state, get_state
+from utils import get_nn_input, load_traj_data
+from model import LR, USER, FOLDER
 
-N_EPISODES = 100
-M          = 10
+N_EPISODES = 50
 C          = 4
+M          = 20
 GAMMA      = 0.8
 VMAX       = 1.0 #??
 DT         = 0.2
@@ -23,17 +23,7 @@ DT         = 0.2
 # epsilon greedy should decay from 0.5 to 0.1 linearly
 #TODO: add epsilon greedy
 
-USER = 'Brian'
-USER = 'Torstein'
-# USER = 'Valentin'
-# USER = 'Bradley'
 
-if USER == 'Torstein':
-    folder = "/home/torstein/Stanford/aa277/aa277_project/data"
-elif USER == 'Brian':
-    folder  = "/home/bdobkowski/Stanford/AA277/aa277_project/data"
-else:
-    raise Exception('Need to list a folder in on your local machine to store data')
 
 def load_training_test_data(folder):
     with open(os.path.join(folder, 'x_dict.json'), 'r') as j:
@@ -184,8 +174,8 @@ def robots_intersect(x1, x2):
 def plot_animation(Pg1, Pg2, X_robo1, X_robo2, radius1, radius2):
     fig = plt.figure()
     ax1 = fig.add_subplot(1,1,1)
-    xlimits = [-15,15]
-    ylimits = [-25, 25]
+    xlimits = [-5,5]
+    ylimits = [-2.5, 2.5]
     ax1.set_xlim(xlimits)
     ax1.set_ylim(ylimits)
 
@@ -223,11 +213,11 @@ def create_train_set_from_dict(x_dict, y_dict):
 
     for xk, yk in zip(x_dict.keys(), y_dict.keys()):
 
-        x1_joint = model.get_joint_state_vectorized(x_dict[xk][0], x_dict[xk][1])
-        x2_joint = model.get_joint_state_vectorized(x_dict[xk][1], x_dict[xk][0])
+        x1_joint = get_joint_state(x_dict[xk][0], x_dict[xk][1])
+        x2_joint = get_joint_state(x_dict[xk][1], x_dict[xk][0])
 
-        x1_joint_rotated = np.apply_along_axis(model.get_rotated_state, 1, x1_joint)
-        x2_joint_rotated = np.apply_along_axis(model.get_rotated_state, 1, x2_joint)
+        x1_joint_rotated = np.apply_along_axis(get_rotated_state, 1, x1_joint)
+        x2_joint_rotated = np.apply_along_axis(get_rotated_state, 1, x2_joint)
 
         xs = np.vstack([xs, x1_joint_rotated])
         xs = np.vstack([xs, x2_joint_rotated])
@@ -305,11 +295,11 @@ def CADRL(value_model, initial_state_1, initial_state_2, epsilon, dt):
         x1_o_nxt_all = np.repeat(x1_o_nxt.reshape(1,-1), repeats=num_sampled_actions, axis=0)
         x2_o_nxt_all = np.repeat(x2_o_nxt.reshape(1,-1), repeats=num_sampled_actions, axis=0)
 
-        x1_joint = model.get_joint_state_vectorized(x1_nxt, x2_o_nxt_all)
-        x2_joint = model.get_joint_state_vectorized(x2_nxt, x1_o_nxt_all)
+        x1_joint = get_joint_state(x1_nxt, x2_o_nxt_all)
+        x2_joint = get_joint_state(x2_nxt, x1_o_nxt_all)
 
-        x1_joint_rotated = np.apply_along_axis(model.get_rotated_state, 1, x1_joint)
-        x2_joint_rotated = np.apply_along_axis(model.get_rotated_state, 1, x2_joint)
+        x1_joint_rotated = np.apply_along_axis(get_rotated_state, 1, x1_joint)
+        x2_joint_rotated = np.apply_along_axis(get_rotated_state, 1, x2_joint)
 
         R1 = reward_vectorized(curr_state_1, curr_state_2, A, dt)
         R2 = reward_vectorized(curr_state_2, curr_state_1, A, dt)
@@ -427,12 +417,13 @@ if __name__ == '__main__':
     optimizer = tf.keras.optimizers.SGD(learning_rate=LR, momentum=0.9)
 
     # algorithm 2 line 4
-    value_model = tf.keras.models.load_model(os.path.join(folder, 'initial_value_model'))
+    value_model = tf.keras.models.load_model(os.path.join(FOLDER, 'initial_value_model'))
     value_model_prime = value_model
 
     # algorithm 2 line 5
     # x_dict, y_dict = load_training_test_data(folder)
-    x_ep_dict, y_ep_dict = model.load_traj_generate_data_not_joint(folder)
+    x_ep_dict, v_pref, dt = load_traj_data(FOLDER)
+    x_dict_rotated, y_ep_dict = get_nn_input(x_ep_dict, v_pref, dt)
 
     x_experience = x_ep_dict.copy()
     y_experience = y_ep_dict.copy()
@@ -441,7 +432,7 @@ if __name__ == '__main__':
     # x_ep_dict[1] is all robot traj data for episode 1
     # x_ep_dict[1][2] is robot 2 traj data for episode 1
     # x_ep_dict[1][2][3] is timestep 3 for robot 2 in episode 1
-    # x_ep_dict[1][2][3] is 9-dimensional, and contains the state from get_state() in model.py
+    # x_ep_dict[1][2][3] is 10-dimensional, and contains the state from get_state() in model.py
 
     # y_ep_dict is constructed the same way
 
@@ -514,4 +505,4 @@ if __name__ == '__main__':
             # evaluate value model here...
             value_model_prime = value_model
 
-    value_model.save(os.path.join(folder, 'post_RL_value_model'))
+    value_model.save(os.path.join(FOLDER, 'post_RL_value_model'))

@@ -21,10 +21,18 @@ import math
 # Local Application Modules
 # -----------------------------------------------------------------------------
 from utils import load_nn_data, load_traj_data, get_nn_input
-USER = 'Brian'
-# USER = 'Torstein'
+USER = os.getlogin() #
+print(USER)
+# USER = 'Brian'
+# USER = 'torstein'
 # USER = 'Valentin'
 # USER = 'Bradley'
+if USER == 'torstein':
+    FOLDER = "/home/torstein/Stanford/aa277/aa277_project/data"
+elif USER == 'Brian':
+    FOLDER  = "/home/bdobkowski/Stanford/AA277/aa277_project/data"
+else:
+    raise Exception('Need to list a folder in on your local machine to store data')
 
 # training params
 BATCH_SIZE = 100
@@ -82,9 +90,9 @@ def train_model(model, x, y, epochs = 250):
 
 
 
-def nn_training(model_folder=None, epochs=1000, x_dict=None, y_dict=None):
+def nn_training(model_folder, epochs=1000, x_dict=None, y_dict=None, retrain=True):
 
-    if model_folder is not None:
+    if not retrain:
         model = tf.keras.models.load_model(model_folder)
     else: 
         model = create_model()
@@ -95,17 +103,11 @@ def nn_training(model_folder=None, epochs=1000, x_dict=None, y_dict=None):
     results = model.evaluate(x_test, y_test, batch_size=128)
     print(results)
 
-    model.save(os.path.join(folder, 'initial_value_model'))
+    model.save(os.path.join(model_folder, 'initial_value_model'))
 
 if __name__ == '__main__':
-    if USER == 'Torstein':
-        folder = "/home/torstein/Stanford/aa277/aa277_project/data"
-    elif USER == 'Brian':
-        folder  = "/home/bdobkowski/Stanford/AA277/aa277_project/data"
-    else:
-        raise Exception('Need to list a folder in on your local machine to store data')
-    x_dict, v_pref, dt = load_traj_data(folder)
+    x_dict, v_pref, dt = load_traj_data(FOLDER)
     x_dict_rotated, y_dict = get_nn_input(x_dict, v_pref, dt)
     print("Test data loaded")
-    nn_training(x_dict=x_dict_rotated, y_dict=y_dict, epochs=40)
+    nn_training(FOLDER, x_dict=x_dict_rotated, y_dict=y_dict, epochs=500)
 

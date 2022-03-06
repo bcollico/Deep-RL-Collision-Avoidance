@@ -8,7 +8,7 @@ import os
 
 if USER == 'Brian':
 	folder  = '/home/bdobkowski/Stanford/AA277/aa277_project/data'
-elif USER == 'Torstein':
+elif USER == 'torstein':
 	folder  = '/home/torstein/Stanford/aa277/aa277_project/data'
 elif USER == 'Bradley':
     folder  = '/home/bcollico/github/aa277_project/data'
