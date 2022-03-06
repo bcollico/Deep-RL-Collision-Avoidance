@@ -1,4 +1,26 @@
 import numpy as np
+
+def get_joint_state_vectorized(traj_1, traj_2):
+    dim = 14
+    len_1 = traj_1.shape[0]
+    len_2 = traj_2.shape[0]
+    x = np.zeros((len_1, dim))
+    x[:,:4] = traj_1[:,:4]
+    x[:,4] = traj_1[:,4] 
+    x[:,5] = traj_1[:,5] 
+    x[:,6] = traj_1[:,6] 
+    x[:,7] = traj_1[:,7] 
+    x[:,8] = traj_1[:,8] 
+    if len_1 <= len_2:
+        x[:,9:13] = traj_2[:len_1,:4]
+        x[:,13] = traj_2[:len_1,4] #radius1
+    else:
+        x[:len_2,9:13] = traj_2[:,:4]
+        x[len_2:,9:13] = traj_2[-1,:4] # repeating last state
+        x[:len_2,13] = traj_2[:,4] #radius1
+        x[len_2:,13] = traj_2[-1,4] # repeating last state
+
+    return x
 def get_joint_state(s_robo1, s_robo2):
     dim = 14
     x = np.zeros((dim))

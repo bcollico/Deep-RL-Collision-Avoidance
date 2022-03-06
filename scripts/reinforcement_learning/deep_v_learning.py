@@ -9,7 +9,7 @@ import matplotlib.animation as animation
 from visualize_traj import animate
 import random
 
-from state_definitions import  get_joint_state, get_rotated_state, get_state
+from state_definitions import  get_joint_state, get_joint_state_vectorized, get_rotated_state, get_state
 from utils import get_nn_input, load_traj_data
 from model import LR, USER, FOLDER
 
@@ -200,7 +200,7 @@ def plot_animation(Pg1, Pg2, X_robo1, X_robo2, radius1, radius2):
             radius1,
             radius2,
             ax1))
-    pth = os.path.join(folder, 'dummy.mp4')
+    pth = os.path.join(FOLDER, 'dummy.mp4')
     writervideo = animation.FFMpegWriter(fps=20) 
     anim.save(pth, writer=writervideo)
     plt.show()
@@ -295,8 +295,8 @@ def CADRL(value_model, initial_state_1, initial_state_2, epsilon, dt):
         x1_o_nxt_all = np.repeat(x1_o_nxt.reshape(1,-1), repeats=num_sampled_actions, axis=0)
         x2_o_nxt_all = np.repeat(x2_o_nxt.reshape(1,-1), repeats=num_sampled_actions, axis=0)
 
-        x1_joint = get_joint_state(x1_nxt, x2_o_nxt_all)
-        x2_joint = get_joint_state(x2_nxt, x1_o_nxt_all)
+        x1_joint = get_joint_state_vectorized(x1_nxt, x2_o_nxt_all)
+        x2_joint = get_joint_state_vectorized(x2_nxt, x1_o_nxt_all)
 
         x1_joint_rotated = np.apply_along_axis(get_rotated_state, 1, x1_joint)
         x2_joint_rotated = np.apply_along_axis(get_rotated_state, 1, x2_joint)

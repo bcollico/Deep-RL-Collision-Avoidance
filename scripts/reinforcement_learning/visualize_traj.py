@@ -63,8 +63,8 @@ def animate(i,
         ax1.plot(X_robo1[0:i+1, 0], X_robo1[0:i+1, 1], linestyle='--', color='b')
         ax1.plot(X_robo2[0:i+1, 0], X_robo2[0:i+1, 1], linestyle='--', color='g')
 
-    ax1.set_xlim([-25,25])
-    ax1.set_ylim([-25, 25])
+    ax1.set_xlim([-5,5])
+    ax1.set_ylim([-2.5, 2.5])
     ax1.set_aspect( 1 )
     ax1.add_artist( robo1 )
     ax1.add_artist( robo2 )
