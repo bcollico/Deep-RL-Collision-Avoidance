@@ -10,17 +10,12 @@ from visualize_traj import animate
 import random
 from model import LR
 
-<<<<<<< HEAD
 from utils import load_nn_data, load_traj_data, get_nn_input
 from state_definitions import get_joint_state, get_rotated_state
 
 N_EPISODES = 100
 M          = 10
-=======
-N_EPISODES = 50
 C          = 4
-M          = 20
->>>>>>> main
 GAMMA      = 0.8
 VMAX       = 1.0 #??
 DT         = 0.2
