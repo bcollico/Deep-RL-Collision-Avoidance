@@ -49,6 +49,13 @@ def get_radius(x):
     except:
         return x[4]
 
+def get_heading(x):
+    try:
+        a, b = x.shape
+        return x[-1, 8]
+    except:
+        return x[8]
+
 def get_current_state(x):
     return np.copy(x[-1, :])
 
@@ -56,9 +63,7 @@ def close_to_goal(x):
     '''
     condition for exiting the while loop in CADRL
     '''
-    tol = 1e-1
-    return get_goal_distance(x) < tol
-    #return np.linalg.norm(get_pos(x) - get_goal(x)) < 1e-1
+    return get_goal_distance(x) < GOAL_EPS
 
 def get_goal_distance(x):
     goal = get_goal(x)
