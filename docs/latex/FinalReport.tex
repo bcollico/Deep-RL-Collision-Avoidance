@@ -3,7 +3,7 @@
 
 \begin{document}
 
-\title{AA277: Collision Avoidance Project Proposal\\
+\title{AA277: Collision Avoidance Final Project\\
 % {\footnotesize \textsuperscript{*}Note: Sub-titles are not captured in Xplore and
 % should not be used}
 % \thanks{Identify applicable funding agency here. If none, delete this.}
@@ -106,8 +106,18 @@ will then be used to retrieve the optimal policy as
     &&&\policy{}^{\star}(\state{ij}{t+1})=\argmax\limits_{\ctrl{}{}} \Reward{}(\state{i}{t}, \, \ctrl{i}{}) + \\
     &&&\qquad\gamma^{\dt \cdot \vel{pref}} \int_{\state{ij}{t+1}} \transition{\state{ij}{t}}{\state{ij}{t+1}}{\ctrl{i}{}} \Value(\state{ij}{t+1}) \, d\state{ij}{t+1}
 \end{alignat}
-\subsection{Evaluation}
-The resulting policy with be evaluated in unstructured environments (no modelled obstacles) with varying degrees of change from the original application. E.g., selected robots may become stationary obstacles or behave in a non-cooperative manner, part of the robot state may become corrupted with error, the assumed dynamics model undergoes a slight change. The goal is to perturb the expected conditions for the robots and evaluate the method under these adversarial conditions.
+\subsection{Proposed experiments}
+The resulting policy with be evaluated in unstructured environments (no modelled obstacles) with varying degrees of change from the original application.\\
+
+An experiment we wish to run is to put our agent with an agent that has another policy, so that the reciprocity hypothesis does not stand. Other robots may become stationary obstacles or behave in a non-cooperative manner, part of the robot state may become corrupted with error, the assumed dynamics model undergoes a slight change. The goal is to perturb the expected conditions for the robots and evaluate the method under these adversarial conditions.\\
+
+One parameter we want to change is $$\gamma$$, the discount factor. Currently $$\gamma=0.8$$, and we would like to lower it to see the influence it has on metrics such as the time to goal. The lower $$\gamma$$ is, the less importance is put on further states, and we do not know how would that translate in terms of time to goal.\\
+
+
+
+\subsection{Metrics used}
+Another objective is to have the same extra time spent to reach goals for both agents. This extra time is the time added compared to going straight toward goal at the preferred speed for each robot. TALK ABOUT THE METRICS here.
+
 \bibliographystyle{IEEEtran.bst}
 \bibliography{references.bib}
 \end{document}
