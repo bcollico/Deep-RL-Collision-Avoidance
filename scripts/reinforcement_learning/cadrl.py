@@ -16,7 +16,7 @@ robots_intersect, close_to_goal
 from model import LR, USER, FOLDER
 from configs import *
 
-def CADRL(value_model, initial_state_1, initial_state_2, epsilon, dt):
+def CADRL(value_model, initial_state_1, initial_state_2, epsilon, dt, episode=0):
     '''
         Algorithm 1: CADRL (Collision Avoidance with Deep RL)
 
@@ -37,6 +37,7 @@ def CADRL(value_model, initial_state_1, initial_state_2, epsilon, dt):
     # x[5:7] - goal position
 
     # while distance between robots and there goals is greater than eps
+    R1s, R2s, x1s_rot, x2s_rot = [], [], [], []
     while (not close_to_goal(x_1)) or (not close_to_goal(x_2)):
         t += dt
 
@@ -83,6 +84,7 @@ def CADRL(value_model, initial_state_1, initial_state_2, epsilon, dt):
 
         R1 = reward_vectorized(curr_state_1, curr_state_2, A, dt)
         R2 = reward_vectorized(curr_state_2, curr_state_1, A, dt)
+
 
         lookahead_1 = R1 + gamma_bar_x1 * value_model(x1_joint_rotated)
         lookahead_2 = R2 + gamma_bar_x2 * value_model(x2_joint_rotated)
@@ -136,14 +138,21 @@ def CADRL(value_model, initial_state_1, initial_state_2, epsilon, dt):
 
         ######################################################################################################
         if random.random() < epsilon:
+            idx = np.random.randint(0, len(A)-1)
             opt_action_1 = random.choice(A)
         else:
-            opt_action_1 = A[np.argmax(lookahead_1)]
-
+            idx = np.argmax(lookahead_1)
+            opt_action_1 = A[idx]
+        R1s.append(R1[idx])
+        x1s_rot.append(x1_joint_rotated[idx])
         if random.random() < epsilon:
-            opt_action_2 = random.choice(A)
+            idx = np.random.randint(0, len(A)-1)
+            opt_action_2 = A[idx]
         else:
+            idx =  np.argmax(lookahead_2)
             opt_action_2 = A[np.argmax(lookahead_2)]
+        R2s.append(R2[idx])
+        x2s_rot.append(x2_joint_rotated[idx])
 
         if not close_to_goal(x_1):  
             x_1_new = propagate_dynamics(get_current_state(x_1), opt_action_1, dt).reshape(1, -1)
@@ -169,27 +178,29 @@ def CADRL(value_model, initial_state_1, initial_state_2, epsilon, dt):
             #                get_radius(x_1),
             #                get_radius(x_2))
 
-            return x_1, x_2, False
+            return x_1, x_2, False, np.array(R1s), np.array(R2s), np.array(x1s_rot), np.array(x2s_rot)
 
     if robots_intersect(x_1, x_2):
         print('Reached goal but intersected')
-        # plot_animation(get_goal(x_1),
-        #                get_goal(x_2),
-        #                x_1[:, 0:2],
-        #                x_2[:, 0:2],
-        #                get_radius(x_1),
-        #                get_radius(x_2))
+        if False and episode>=7:
+            plot_animation(get_goal(x_1),
+                        get_goal(x_2),
+                        x_1[:, 0:2],
+                        x_2[:, 0:2],
+                        get_radius(x_1),
+                        get_radius(x_2))
 
-        return x_1, x_2, True
+        return x_1, x_2, False, np.array(R1s), np.array(R2s), np.array(x1s_rot), np.array(x2s_rot)
         # TODO - if a robot intersects another but still reaches the goal, should this be counted in training?
     else:
-        # plot_animation(get_goal(x_1),
-        #            get_goal(x_2),
-        #            x_1[:, 0:2],
-        #            x_2[:, 0:2],
-        #            get_radius(x_1),
-        #            get_radius(x_2))
-        return x_1, x_2, True
+        if episode >= 7:
+            plot_animation(get_goal(x_1),
+                    get_goal(x_2),
+                    x_1[:, 0:2],
+                    x_2[:, 0:2],
+                    get_radius(x_1),
+                    get_radius(x_2))
+        return x_1, x_2, True, np.array(R1s), np.array(R2s), np.array(x1s_rot), np.array(x2s_rot)
 
 def reward(x1, x2, a, dt):
     '''

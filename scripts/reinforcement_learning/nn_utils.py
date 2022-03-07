@@ -120,6 +120,7 @@ def load_nn_data(x_dict, y_dict):
 
     split = 2*len(ys)//3
 
+    assert(xs.shape[0] == ys.shape[0]), "xs and ys shape different"
     shuffler = np.random.permutation(len(xs))
     xs, ys = xs[shuffler], ys[shuffler]
 

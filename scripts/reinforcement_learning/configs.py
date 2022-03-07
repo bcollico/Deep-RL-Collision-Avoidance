@@ -1,18 +1,18 @@
 # initialization training params
 BATCH_SIZE = 100
-LR = 0.01
+LR = 0.001
 MOMENTUM=0.9
 STEP_SIZE = 150
 
 N_EPISODES = 10
-C          = 1
+C          = 2
 M          = 10
 GAMMA      = 0.8
 VMAX       = 1.0 #??
 DT         = 1.0 # for CADRL
 EPS_GREEDY = 0.2 # probability with which a random action is chosen
 # epsilon greedy should decay from 0.5 to 0.1 linearly
-NUM_RL_EPOCHS = 20
+NUM_RL_EPOCHS = 250
 RL_BATCH_FRAC = 0.2
 
 

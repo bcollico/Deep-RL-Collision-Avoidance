@@ -7,8 +7,10 @@ from model import USER
 import os
 from configs import *
 
-data = read_training_data(os.path.join(FOLDER, 'training_data_1000sim.csv'))
-episode = 199
+
+
+data = read_training_data(os.path.join(FOLDER, 'training_data_100sim.csv'))
+episode = 19
 robo1 = 0
 robo2 = 1
 

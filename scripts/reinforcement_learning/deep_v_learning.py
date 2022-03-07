@@ -7,30 +7,16 @@ import random
 
 from cadrl import CADRL
 from state_definitions import  get_joint_state, get_joint_state_vectorized, get_rotated_state, get_state
-from nn_utils import get_nn_input, load_traj_data, create_train_set_from_dict
-from rl_utils import get_goal, get_pos, get_vel, get_current_state, get_radius, get_vpref, propagate_dynamics, \
-robots_intersect, close_to_goal
+from nn_utils import get_nn_input, load_traj_data, create_train_set_from_dict, load_nn_data
+from rl_utils import  get_vpref, find_y_values
 from model import LR, USER, FOLDER, backprop
 from configs import *
 from tqdm import tqdm
 
-def find_y_values(x_1, dt):
-    # Calculating gamma**(tg*v_pref) for training with these trajectories 
-    # THIS FUNCTION IS INCORRECT - MUST BE UPDATED TO USE ESTIMATES FROM V'
-    ttg_1 = (len(x_1)*np.ones(len(x_1)) - range(len(x_1))) * dt
-    y_1   = GAMMA**(get_vpref(x_1)*ttg_1)
-    return y_1
 
-def loss(y_est, y):
-    '''
-    MSE loss
-    '''
-    shape_y = tf.cast(tf.shape(y), dtype=tf.float32)
-    return tf.divide(tf.reduce_sum(tf.square(y_est - y)), shape_y[0])
 
-def add_cooperation_penalty(y_1, y_2):
-    # need to implement this function - what is dg exactly?
-    pass
+
+
 
 if __name__ == '__main__':
 
@@ -38,14 +24,14 @@ if __name__ == '__main__':
 
     # algorithm 2 line 4
     value_model = tf.keras.models.load_model(os.path.join(FOLDER, 'initial_value_model'))
-    value_model_prime = value_model
+    V_prime = value_model
 
     # algorithm 2 line 5
     # x_dict, y_dict = load_training_test_data(folder)
     x_ep_dict, v_pref, dt = load_traj_data(FOLDER)
     x_dict_rotated, y_ep_dict = get_nn_input(x_ep_dict, v_pref, dt)
 
-    x_experience = x_ep_dict.copy()
+    x_experience = x_dict_rotated.copy()
     y_experience = y_ep_dict.copy()
 
     # x_ep_dict is a dictionary with following pattern:
@@ -60,8 +46,9 @@ if __name__ == '__main__':
 
         print(f'\n====== Episode {training_ep} ======\n')
 
-        for m in range(M):
-
+        m = 0
+        while m != M-1:
+        
             rand_ep = np.random.randint(0, high=len(x_ep_dict.keys()))
             
             # algorithm 2 line 8: random test case (by index)
@@ -84,11 +71,11 @@ if __name__ == '__main__':
             # print(f'Random robot 2: {rand_idx_2}')
 
             # s_1, s_2 are Tx9, 9 being the state dimension
-            s_1, s_2, cadrl_successful = CADRL(value_model, s_initial_1, s_initial_2, EPS_GREEDY, DT)
+            s_1, s_2, cadrl_successful, Rs1, Rs2, x1s_rot, x2s_rot = CADRL(value_model, s_initial_1, s_initial_2, EPS_GREEDY, DT, episode=training_ep)
 
             if cadrl_successful:
-
-                print('CADRL Successful!')
+                m+=1
+                print(f"CADRL Successful! {s_1.shape[0]}, {s_2.shape[0]}")
 
                 # trajectories s1 and s2 are different lengths
                 # x1_joint = model.get_joint_state_vectorized(s_1, s_2)
@@ -99,20 +86,22 @@ if __name__ == '__main__':
                 
                 # algorithm 2 line 10
                 # this is not done correctly, we have to actually back out the values for gamma^tg*vpref
-                y_1 = find_y_values(s_1, DT)
-                y_2 = find_y_values(s_2, DT)
+                xs_rot1, y_1 = find_y_values(V_prime, x1s_rot, x2s_rot, Rs1, GAMMA)
+                xs_rot2, y_2 = find_y_values(V_prime, x2s_rot, x1s_rot, Rs2, GAMMA)
 
                 # need to implement this function - it's empty now
-                add_cooperation_penalty(y_1, y_2)
-
+                assert(y_1.shape[0] == xs_rot1.shape[0] 
+                and y_2.shape[0] == xs_rot2.shape[0]), "xsrot not same shape as y_1"
                 # algorithm 2 line 11
-                x_experience[rand_ep][rand_idx_1] = s_1
-                x_experience[rand_ep][rand_idx_2] = s_2
+                x_experience[rand_ep][rand_idx_1] = xs_rot1
+                x_experience[rand_ep][rand_idx_2] = xs_rot2
                 y_experience[rand_ep][rand_idx_1] = y_1
                 y_experience[rand_ep][rand_idx_2] = y_2
 
         # algorithm 2 line 12
-        x_train, y_train = create_train_set_from_dict(x_experience, y_experience)
+        #x_train, y_train = create_train_set_from_dict(x_experience, y_experience)
+
+        x_train, y_train, _, _ = load_nn_data(x_experience, y_experience)
         n_entries = x_train.shape[0]
 
         # algorithm 2 line 13
@@ -122,12 +111,6 @@ if __name__ == '__main__':
         subset = x_train[subset_idx]
 
         backprop(value_model, x_train[subset_idx], y_train[subset_idx], NUM_RL_EPOCHS)
-        # for epoch in tqdm(range(NUM_RL_EPOCHS)):
-        #     with tf.GradientTape() as tape:
-        #         y_est = value_model()
-        #         current_loss = loss(y_est, y_train[subset_idx].reshape(-1,1))  
-        #     grads = tape.gradient(current_loss, value_model.trainable_weights)  
-        #     optimizer.apply_gradients(zip(grads, value_model.trainable_weights)) 
 
         # algorithm 2 line 14-15
         if np.mod(training_ep, C) == 0:
