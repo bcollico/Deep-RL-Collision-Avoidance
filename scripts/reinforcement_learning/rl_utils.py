@@ -121,7 +121,7 @@ def find_y_values(V_prime, state_sequence0, state_sequence1, reward_sequence0, g
         else:
             state1 = state_sequence1[step]
             dg1 = state1[0].item()
-            steps_left1 = dg1-step-1
+            steps_left1 = tg1-step-1
             te1 = (steps_left1)*DT - dg1/v_pref
         if te0 < 1 and te1 > 6:
             value -= 0.1
