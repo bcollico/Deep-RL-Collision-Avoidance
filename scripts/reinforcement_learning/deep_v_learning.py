@@ -1,3 +1,4 @@
+from re import sub
 import numpy as np
 import tensorflow as tf
 import os
@@ -9,7 +10,7 @@ from state_definitions import  get_joint_state, get_joint_state_vectorized, get_
 from nn_utils import get_nn_input, load_traj_data, create_train_set_from_dict
 from rl_utils import get_goal, get_pos, get_vel, get_current_state, get_radius, get_vpref, propagate_dynamics, \
 robots_intersect, close_to_goal
-from model import LR, USER, FOLDER
+from model import LR, USER, FOLDER, backprop
 from configs import *
 from tqdm import tqdm
 
@@ -115,15 +116,18 @@ if __name__ == '__main__':
         n_entries = x_train.shape[0]
 
         # algorithm 2 line 13
-        # this is only one training step, we need to do this for many epochs across the whole dataset
+        # this is only one training step, we need to do this for many epochs across the whole dataset ## "Not the whole dataset?"
         # Torstein, can you help with this part?
-        for epoch in tqdm(range(NUM_RL_EPOCHS)):
-            subset_idx = np.random.choice(n_entries, int(np.floor(n_entries*RL_BATCH_FRAC)), replace=False)
-            with tf.GradientTape() as tape:
-                y_est = value_model(x_train[subset_idx])
-                current_loss = loss(y_est, y_train[subset_idx].reshape(-1,1))  
-            grads = tape.gradient(current_loss, value_model.trainable_weights)  
-            optimizer.apply_gradients(zip(grads, value_model.trainable_weights)) 
+        subset_idx = np.random.choice(n_entries, int(np.floor(n_entries*RL_BATCH_FRAC)), replace=False)
+        subset = x_train[subset_idx]
+
+        backprop(value_model, x_train[subset_idx], y_train[subset_idx], NUM_RL_EPOCHS)
+        # for epoch in tqdm(range(NUM_RL_EPOCHS)):
+        #     with tf.GradientTape() as tape:
+        #         y_est = value_model()
+        #         current_loss = loss(y_est, y_train[subset_idx].reshape(-1,1))  
+        #     grads = tape.gradient(current_loss, value_model.trainable_weights)  
+        #     optimizer.apply_gradients(zip(grads, value_model.trainable_weights)) 
 
         # algorithm 2 line 14-15
         if np.mod(training_ep, C) == 0:

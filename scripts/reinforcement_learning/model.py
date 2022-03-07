@@ -76,7 +76,7 @@ def train_model(model, x, y, epochs = 250):
 def nn_training(model_folder, epochs=1000, x_dict=None, y_dict=None, retrain=True):
 
     if not retrain:
-        model = tf.keras.models.load_model(model_folder)
+        model = tf.keras.models.load_model(os.path.join(model_folder, 'initial_value_model'))
     else: 
         model = create_model()
 
@@ -87,6 +87,9 @@ def nn_training(model_folder, epochs=1000, x_dict=None, y_dict=None, retrain=Tru
     print(results)
 
     model.save(os.path.join(model_folder, 'initial_value_model'))
+
+def backprop(model, xs, ys, epochs):
+    train_model(model, xs, ys, epochs=epochs)
 
 if __name__ == '__main__':
     x_dict, v_pref, dt = load_traj_data(FOLDER)
