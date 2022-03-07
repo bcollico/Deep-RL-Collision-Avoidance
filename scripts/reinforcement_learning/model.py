@@ -20,25 +20,8 @@ import math
 
 # Local Application Modules
 # -----------------------------------------------------------------------------
-from utils import load_nn_data, load_traj_data, get_nn_input
-USER = os.getlogin() #
-print(USER)
-# USER = 'Brian'
-# USER = 'torstein'
-# USER = 'Valentin'
-# USER = 'Bradley'
-if USER == 'torstein':
-    FOLDER = "/home/torstein/Stanford/aa277/aa277_project/data"
-elif USER == 'Brian':
-    FOLDER  = "/home/bdobkowski/Stanford/AA277/aa277_project/data"
-else:
-    raise Exception('Need to list a folder in on your local machine to store data')
-
-# training params
-BATCH_SIZE = 100
-LR = 0.01
-MOMENTUM=0.9
-step_size = 150
+from nn_utils import load_nn_data, load_traj_data, get_nn_input
+from configs import *
 
 class Clip(tf.keras.layers.Layer):
   def __init__(self):
@@ -77,7 +60,7 @@ def train_model(model, x, y, epochs = 250):
         init = LR
         gamma = 0.1
         return init* math.pow(gamma,  
-           math.floor((1+epoch)/step_size))
+           math.floor((1+epoch)/STEP_SIZE))
     lr_scheduler = tf.keras.callbacks.LearningRateScheduler(scheduler, verbose=0)
 
 

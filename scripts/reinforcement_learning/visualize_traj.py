@@ -5,17 +5,9 @@ import matplotlib.animation as animation
 import numpy as np
 from model import USER
 import os
+from configs import *
 
-if USER == 'Brian':
-	folder  = '/home/bdobkowski/Stanford/AA277/aa277_project/data'
-elif USER == 'torstein':
-	folder  = '/home/torstein/Stanford/aa277/aa277_project/data'
-elif USER == 'Bradley':
-    folder  = '/home/bcollico/github/aa277_project/data'
-else:
-	raise Exception('Need to set user folder')
-
-data = read_training_data(os.path.join(folder, 'training_data_1000sim.csv'))
+data = read_training_data(os.path.join(FOLDER, 'training_data_1000sim.csv'))
 episode = 199
 robo1 = 0
 robo2 = 1
@@ -72,6 +64,40 @@ def animate(i,
     plt.title( '2D Trajectory' )
     plt.legend()
 
+def plot_animation(Pg1, Pg2, X_robo1, X_robo2, radius1, radius2):
+    fig = plt.figure()
+    ax1 = fig.add_subplot(1,1,1)
+    xlimits = [-5,5]
+    ylimits = [-2.5, 2.5]
+    ax1.set_xlim(xlimits)
+    ax1.set_ylim(ylimits)
+
+    if len(X_robo1) > len(X_robo2):
+        x2 = np.zeros((len(X_robo1), 2))
+        x2[0:len(X_robo2)] = X_robo2
+        x2[len(X_robo2):] = X_robo2[-1]
+        x1 = X_robo1
+    elif len(X_robo2) > len(X_robo1):
+        x1 = np.zeros((len(X_robo2), 2))
+        x1[0:len(X_robo1)] = X_robo1
+        x1[len(X_robo1):] = X_robo1[-1]
+        x2 = X_robo2
+    else:
+        x1 = X_robo1
+        x2 = X_robo2
+
+    anim = FuncAnimation(fig, animate, interval=100, fargs=(Pg1,
+            Pg2,
+            x1,
+            x2,
+            radius1,
+            radius2,
+            ax1))
+    pth = os.path.join(FOLDER, 'dummy.mp4')
+    writervideo = animation.FFMpegWriter(fps=20) 
+    anim.save(pth, writer=writervideo)
+    plt.show()
+
 if __name__=='__main__':
 
     fig = plt.figure()
@@ -84,7 +110,7 @@ if __name__=='__main__':
             radius1,
             radius2,
             ax1))
-    pth = os.path.join(folder, 'dummy.mp4')
+    pth = os.path.join(FOLDER, 'dummy.mp4')
     writervideo = animation.FFMpegWriter(fps=20) 
     anim.save(pth, writer=writervideo)
 

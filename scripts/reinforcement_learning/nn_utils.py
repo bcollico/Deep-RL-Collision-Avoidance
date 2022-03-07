@@ -2,13 +2,13 @@ import numpy as np
 from read_training_data import read_training_data
 import json
 import os
-from state_definitions import  get_joint_state, get_rotated_state, get_state
+from state_definitions import  get_joint_state, get_rotated_state, get_state, get_joint_state_vectorized
 
 GAMMA = 0.8
 
 def load_traj_data(folder):
  
-    data = read_training_data(os.path.join(folder, 'training_data_1000sim.csv'))
+    data = read_training_data(os.path.join(folder, 'training_data_100sim.csv'))
     #data = read_training_data(os.path.join(folder, 'training_data.csv'))
 
     dt = data.dt
@@ -130,4 +130,30 @@ def load_nn_data(x_dict, y_dict):
     y_test = ys[split:]
 
     return x_train, y_train, x_test, y_test
+
+def create_train_set_from_dict(x_dict, y_dict):
+
+    dim_rot_joint_state = 15
+    xs = np.array([]).reshape((0, dim_rot_joint_state))
+    ys = np.array([])
+
+    for xk, yk in zip(x_dict.keys(), y_dict.keys()):
+
+        x1_joint = get_joint_state_vectorized(x_dict[xk][0], x_dict[xk][1])
+        x2_joint = get_joint_state_vectorized(x_dict[xk][1], x_dict[xk][0])
+
+        x1_joint_rotated = np.apply_along_axis(get_rotated_state, 1, x1_joint)
+        x2_joint_rotated = np.apply_along_axis(get_rotated_state, 1, x2_joint)
+
+        xs = np.vstack([xs, x1_joint_rotated])
+        xs = np.vstack([xs, x2_joint_rotated])
+
+        try:
+            ys = np.concatenate((ys, y_dict[yk][0]))
+            ys = np.concatenate((ys, y_dict[yk][1]))
+        except:
+            ys = np.concatenate((ys, y_dict[yk][0].numpy().flatten()))
+            ys = np.concatenate((ys, y_dict[yk][1].numpy().flatten()))
+
+    return xs, ys
 
