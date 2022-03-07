@@ -35,4 +35,8 @@ include_directories(${AA277_PROJ_SOURCE_DIR}/RVO2/src)
 add_executable(Generate_Training_Data Generate_Training_Data.cpp)
 target_link_libraries(Generate_Training_Data PRIVATE RVO)
 
+add_executable(Generate_Static_Tests Generate_Static_Tests.cpp)
+target_link_libraries(Generate_Static_Tests PRIVATE RVO)
+
 install(TARGETS Generate_Training_Data DESTINATION bin)
+install(TARGETS Generate_Static_Tests DESTINATION bin)

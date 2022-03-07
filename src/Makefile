@@ -38,13 +38,17 @@ CXXFLAGS = -Wall -g -O2
 RM = rm -f
 INCLUDES = -I../src
 LIBS = ${AA277_PROJ_SOURCE_DIR}/RVO2/src/libRVO.a
-PROGRAMS = Generate_Training_Data
+PROGRAMS = Generatate_Training_Data, Generate_Static_Tests
 
 all: $(PROGRAMS)
 
 Generate_Training_Data: Generate_Training_Data.o
 	$(RM) Generate_Training_Data
 	$(CXX) $(INCLUDES) $(CXXFLAGS) -o $@ Generate_Training_Data.o $(LIBS)
+
+Generate_Static_Tests: Generate_Static_Tests.o
+	$(RM) Generate_Static_Tests
+	$(CXX) $(INCLUDES) $(CXXFLAGS) -o $@ Generate_Static_Tests.o $(LIBS)
 	
 .cpp.o:
 	$(CXX) $(INCLUDES) $(CXXFLAGS) -c -o $@ $<
