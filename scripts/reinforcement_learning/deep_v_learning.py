@@ -235,6 +235,7 @@ def find_y_values(x_1, dt):
     # Calculating gamma**(tg*v_pref) for training with these trajectories 
     ttg_1 = (len(x_1)*np.ones(len(x_1)) - range(len(x_1))) * dt
     y_1   = GAMMA**(get_vpref(x_1)*ttg_1)
+    return y_1
 
 def CADRL(value_model, initial_state_1, initial_state_2, epsilon, dt):
     '''
@@ -382,12 +383,12 @@ def CADRL(value_model, initial_state_1, initial_state_2, epsilon, dt):
 
             return x_1, x_2, False
 
-    # plot_animation(get_goal(x_1),
-    #                get_goal(x_2),
-    #                x_1[:, 0:2],
-    #                x_2[:, 0:2],
-    #                get_radius(x_1),
-    #                get_radius(x_2))
+    plot_animation(get_goal(x_1),
+                   get_goal(x_2),
+                   x_1[:, 0:2],
+                   x_2[:, 0:2],
+                   get_radius(x_1),
+                   get_radius(x_2))
 
     if robots_intersect(x_1, x_2):
         plot_animation(get_goal(x_1),
