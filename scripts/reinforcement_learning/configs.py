@@ -9,7 +9,7 @@ C          = 2
 M          = 10
 GAMMA      = 0.8
 VMAX       = 1.0 #??
-DT         = 0.2 # for CADRL
+DT         = 0.5 # for CADRL
 EPS_GREEDY = 0.2 # probability with which a random action is chosen
 # epsilon greedy should decay from 0.5 to 0.1 linearly
 NUM_RL_EPOCHS = 250
@@ -17,6 +17,7 @@ RL_BATCH_FRAC = 0.2
 
 KINEMATIC=True
 GOAL_EPS = 0.5
+MAX_TIME = 25
 
 
 import os

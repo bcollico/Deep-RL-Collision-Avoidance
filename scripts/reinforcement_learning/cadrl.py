@@ -43,7 +43,11 @@ def CADRL(value_model, initial_state_1, initial_state_2, epsilon, dt, episode=0)
 
     # while distance between robots and there goals is greater than eps
     R1s, R2s, x1s_rot, x2s_rot = [], [], [], []
-    while (not close_to_goal(x_1)) or (not close_to_goal(x_2)):
+
+    done_1 = False
+    done_2 = False
+
+    while (not done_1) or (not done_2):
         t += dt
 
         n_timesteps_x1 = len(x_1)
@@ -92,7 +96,6 @@ def CADRL(value_model, initial_state_1, initial_state_2, epsilon, dt, episode=0)
 
         R1 = reward_vectorized(curr_state_1, curr_state_2, A1, dt)
         R2 = reward_vectorized(curr_state_2, curr_state_1, A2, dt)
-
 
         lookahead_1 = R1 + gamma_bar_x1 * value_model(x1_joint_rotated)
         lookahead_2 = R2 + gamma_bar_x2 * value_model(x2_joint_rotated)
@@ -159,56 +162,67 @@ def CADRL(value_model, initial_state_1, initial_state_2, epsilon, dt, episode=0)
             opt_action_2 = A2[idx]
         else:
             idx =  np.argmax(lookahead_2)
-            opt_action_2 = A2[np.argmax(lookahead_2)]
+            opt_action_2 = A2[idx]
         R2s.append(R2[idx])
         x2s_rot.append(x2_joint_rotated[idx])
 
-        if not close_to_goal(x_1):  
+        if not done_1:  
             x_1_new = propagate_dynamics(get_current_state(x_1), opt_action_1, dt).reshape(1, -1)
             # Q: how should we fill out the velocity in the states? previous timestep?
             x_1[-1, 2:4] = opt_action_1 # velocity
-            x_1[-1, 8] = np.arctan2(opt_action_1[1], opt_action_1[0]) # heading, theta
+            x_1[-1, 8]   = np.arctan2(opt_action_1[1], opt_action_1[0]) # heading, theta
             x_1 = np.append(x_1, x_1_new, axis=0)      
-        if not close_to_goal(x_2):
+        if not done_2:
             x_2_new = propagate_dynamics(get_current_state(x_2), opt_action_2, dt).reshape(1, -1)
             x_2[-1, 2:4] = opt_action_2 # velocity
-            x_2[-1, 8] = np.arctan2(opt_action_2[1], opt_action_2[0]) # heading, theta
+            x_2[-1, 8]   = np.arctan2(opt_action_2[1], opt_action_2[0]) # heading, theta
             x_2 = np.append(x_2, x_2_new, axis=0)
 
         # print(np.linalg.norm(get_pos(x_1) - get_goal(x_1)))
         # print(np.linalg.norm(get_pos(x_2) - get_goal(x_2)))
 
-        if n_timesteps_x1*dt > 25 or n_timesteps_x2*dt > 25:
+        if close_to_goal(x_1):
+            done_1 = True
 
-            plot_animation(get_goal(x_1),
-                           get_goal(x_2),
-                           x_1[:, 0:2],
-                           x_2[:, 0:2],
-                           get_radius(x_1),
-                           get_radius(x_2))
+        if close_to_goal(x_2):
+            done_2 = True
+
+        if robots_intersect(x_1, x_2):
+            done_1 = True
+            done_2 = True
+
+        if n_timesteps_x1*dt > MAX_TIME or n_timesteps_x2*dt > MAX_TIME:
+
+            # plot_animation(get_goal(x_1),
+            #                get_goal(x_2),
+            #                x_1[:, 0:2],
+            #                x_2[:, 0:2],
+            #                get_radius(x_1),
+            #                get_radius(x_2))
 
             return x_1, x_2, False, np.array(R1s), np.array(R2s), np.array(x1s_rot), np.array(x2s_rot)
 
     if robots_intersect(x_1, x_2):
         print('Reached goal but intersected')
-        if False and episode>=7:
-            plot_animation(get_goal(x_1),
-                        get_goal(x_2),
-                        x_1[:, 0:2],
-                        x_2[:, 0:2],
-                        get_radius(x_1),
-                        get_radius(x_2))
+        # if True:
+        # # if False and episode>=7:
+        #     plot_animation(get_goal(x_1),
+        #                 get_goal(x_2),
+        #                 x_1[:, 0:2],
+        #                 x_2[:, 0:2],
+        #                 get_radius(x_1),
+        #                 get_radius(x_2))
 
-        return x_1, x_2, False, np.array(R1s), np.array(R2s), np.array(x1s_rot), np.array(x2s_rot)
+        return x_1, x_2, True, np.array(R1s), np.array(R2s), np.array(x1s_rot), np.array(x2s_rot)
         # TODO - if a robot intersects another but still reaches the goal, should this be counted in training?
     else:
-        if episode >= 7:
-            plot_animation(get_goal(x_1),
-                    get_goal(x_2),
-                    x_1[:, 0:2],
-                    x_2[:, 0:2],
-                    get_radius(x_1),
-                    get_radius(x_2))
+        # if episode >= 7:
+        #     plot_animation(get_goal(x_1),
+        #             get_goal(x_2),
+        #             x_1[:, 0:2],
+        #             x_2[:, 0:2],
+        #             get_radius(x_1),
+        #             get_radius(x_2))
         return x_1, x_2, True, np.array(R1s), np.array(R2s), np.array(x1s_rot), np.array(x2s_rot)
 
 def reward_vectorized(x1, x2, a, dt):
@@ -237,8 +251,6 @@ def reward_vectorized(x1, x2, a, dt):
     R[dmin_idx]   = -0.1 - dmin[dmin_idx]/2
     dmin_idx_2    = dmin < 0.0
     R[dmin_idx_2] = -0.25
-
-    print(R)
 
     return R.reshape(-1, 1)
 

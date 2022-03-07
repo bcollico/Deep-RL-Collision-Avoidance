@@ -14,10 +14,6 @@ from configs import *
 from tqdm import tqdm
 
 
-
-
-
-
 if __name__ == '__main__':
 
     optimizer = tf.keras.optimizers.SGD(learning_rate=LR, momentum=0.9)
@@ -63,12 +59,9 @@ if __name__ == '__main__':
             # rand_idx_2 = 0
 
             # algorithm 2 line 9
-            # should we be choosing data from experience set or dataset here?
             s_initial_1 = x_ep_dict[rand_ep][rand_idx_1][0]
             s_initial_2 = x_ep_dict[rand_ep][rand_idx_2][0]
             print(f'Random episode: {rand_ep}')
-            # print(f'Random robot 1: {rand_idx_1}')
-            # print(f'Random robot 2: {rand_idx_2}')
 
             # s_1, s_2 are Tx9, 9 being the state dimension
             s_1, s_2, cadrl_successful, Rs1, Rs2, x1s_rot, x2s_rot = CADRL(value_model, s_initial_1, s_initial_2, EPS_GREEDY, DT, episode=training_ep)
@@ -76,13 +69,6 @@ if __name__ == '__main__':
             if cadrl_successful:
                 m+=1
                 print(f"CADRL Successful! {s_1.shape[0]}, {s_2.shape[0]}")
-
-                # trajectories s1 and s2 are different lengths
-                # x1_joint = model.get_joint_state_vectorized(s_1, s_2)
-                # x2_joint = model.get_joint_state_vectorized(s_2, s_1)
-
-                # x1_joint_rotated = np.apply_along_axis(model.get_rotated_state, 1, x1_joint)
-                # x2_joint_rotated = np.apply_along_axis(model.get_rotated_state, 1, x2_joint)
                 
                 # algorithm 2 line 10
                 # this is not done correctly, we have to actually back out the values for gamma^tg*vpref
