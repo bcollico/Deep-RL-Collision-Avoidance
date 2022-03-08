@@ -21,7 +21,7 @@ def value_heatmap(value_fcn):
 
     vpref = np.array([1,1])
     radius = np.array([1,1])
-    goal = np.array([1.5,-1.5])
+    goal = np.array([3.0,0.0])
 
     xmax = 5
     xmin = -xmax
@@ -37,16 +37,17 @@ def value_heatmap(value_fcn):
     xrange_plot = np.arange(xmin,xmax+step,step=step)
     yrange_plot = np.arange(ymin,ymax+step,step=step)
 
-    ego_x = 2
-    ego_y = 2
-    ego_vx = 0
-    ego_vy = -vpref[0]
-    ego_state = np.array([ego_x, ego_y, ego_vx, ego_vy])
+    ego_x = -3
+    ego_y = 0
+    ego_vx = vpref[0]
+    ego_vy = 0
+    ego_state = np.array([ego_x, ego_y,  ego_vx,  ego_vy])
+    r2_state  = np.array([0    , 0    , 0, 0])
 
     pos_map = product(xrange, yrange)
 
     s1 = get_state(ego_state  , radius[0], goal[0], goal[1], vpref[0])
-    s2 = get_state(np.zeros(4), radius[1], None   , None   , vpref[1])
+    s2 = get_state(r2_state   , radius[1], None   , None   , vpref[1])
 
     output_value = np.array(list(map(lambda x: map_fcn(x, value_fcn, s1, s2), pos_map)))
     # distance     = np.array(list(map(lambda x: np.linalg.norm([x[0][0]-x[1][0], x[0][1]-x[1][1]]), pos_map)))
@@ -125,7 +126,7 @@ def map_fcn(x, value_fcn, s1, s2):
 
 
 if __name__=='__main__':
-    model_path = folder+"/initial_value_model/"
+    model_path = folder+"/bradley_value_model/"
 
     value_fcn = create_model()
     value_fcn.load_weights(model_path)
