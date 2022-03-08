@@ -17,6 +17,7 @@ import tensorflow as tf
 import os
 import json
 import math
+from tqdm.keras import TqdmCallback
 
 # Local Application Modules
 # -----------------------------------------------------------------------------
@@ -51,7 +52,7 @@ def create_model(input_shape=15):
 
     return model
 
-def train_model(model, x, y, epochs = 250):
+def train_model(model, x, y, epochs = 250, verbose=1):
 
     optimizer = tf.keras.optimizers.SGD(learning_rate=LR, momentum=MOMENTUM)
     loss = tf.keras.losses.MeanSquaredError()
@@ -67,7 +68,7 @@ def train_model(model, x, y, epochs = 250):
     model.compile(optimizer = optimizer, loss = loss,  
             steps_per_execution=10)
     model.fit(x, y, epochs = epochs, batch_size=BATCH_SIZE,
-    callbacks=[lr_scheduler])
+    callbacks=[lr_scheduler, TqdmCallback(verbose=verbose)], verbose=0)
 
     return model
 
@@ -88,12 +89,13 @@ def nn_training(model_folder, epochs=1000, x_dict=None, y_dict=None, retrain=Tru
 
     model.save(os.path.join(model_folder, 'initial_value_model'))
 
-def backprop(model, xs, ys, epochs):
-    train_model(model, xs, ys, epochs=epochs)
+def backprop(model, xs, ys, epochs, verbose=1):
+    print("verbosity", verbose)
+    train_model(model, xs, ys, epochs=epochs,verbose=verbose)
 
 if __name__ == '__main__':
     x_dict, v_pref, dt = load_traj_data(FOLDER)
     x_dict_rotated, y_dict = get_nn_input(x_dict, v_pref, dt)
     print("Test data loaded")
-    nn_training(FOLDER, x_dict=x_dict_rotated, y_dict=y_dict, epochs=1000)
+    nn_training(FOLDER, x_dict=x_dict_rotated, y_dict=y_dict, epochs=10)
 
