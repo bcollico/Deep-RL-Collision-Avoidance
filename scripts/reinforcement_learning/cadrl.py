@@ -1,30 +1,20 @@
 import numpy as np
 import tensorflow as tf
-import os
-import model
-import json
-from matplotlib import pyplot as plt
-from matplotlib.animation import FuncAnimation
-import matplotlib.animation as animation
-from visualize_traj import animate, plot_animation
+
 import random
 import itertools
 
-from state_definitions import  get_joint_state, get_joint_state_vectorized, get_rotated_state, get_state
-from nn_utils import get_nn_input, load_traj_data
+from state_definitions import  get_joint_state_vectorized, get_rotated_state
 from rl_utils import get_goal, get_pos, get_vel, get_current_state, get_radius, get_vpref, propagate_dynamics, \
 robots_intersect, close_to_goal, get_heading, fill_vel_heading
-from model import LR, USER, FOLDER
 from configs import *
 
-def CADRL(value_model, initial_state_1, initial_state_2, epsilon, dt, episode=0):
+def CADRL(value_model, initial_state_1, initial_state_2, epsilon, episode=0, test=False):
     '''
         Algorithm 1: CADRL (Collision Avoidance with Deep RL)
 
-        INCOMPLETE
-
-        Doesn't work yet. Also haven't implemented epsilon-greedy exploration yet
     '''
+    dt = DT
     t  = 0
 
     # robot trajectories will be Tx9, where T is the total timesteps in the traj
@@ -113,7 +103,7 @@ def CADRL(value_model, initial_state_1, initial_state_2, epsilon, dt, episode=0)
         except:
             import pdb;pdb.set_trace()
 
-        if random.random() < epsilon:
+        if not test and random.random() < epsilon:
             idx = np.random.randint(0, len(A1)-1)
             opt_action_1 = random.choice(A1)
         else:
@@ -122,7 +112,7 @@ def CADRL(value_model, initial_state_1, initial_state_2, epsilon, dt, episode=0)
         R1s.append(R1[idx])
         x1s_rot.append(x1_joint_rotated[idx])
 
-        if random.random() < epsilon:
+        if not test and random.random() < epsilon:
             idx = np.random.randint(0, len(A2)-1)
             opt_action_2 = A2[idx]
         else:
@@ -157,7 +147,7 @@ def CADRL(value_model, initial_state_1, initial_state_2, epsilon, dt, episode=0)
             done_2 = True
 
         if n_timesteps_x1*dt > MAX_TIME or n_timesteps_x2*dt > MAX_TIME:
-            print('Robots did not reach goal')
+            #print('Robots did not reach goal')
 
             # plot_animation(get_goal(x_1),
             #                get_goal(x_2),
@@ -166,10 +156,10 @@ def CADRL(value_model, initial_state_1, initial_state_2, epsilon, dt, episode=0)
             #                get_radius(x_1),
             #                get_radius(x_2))
 
-            return x_1, x_2, False, np.array(R1s), np.array(R2s), np.array(x1s_rot), np.array(x2s_rot)
+            return x_1, x_2, False, np.array(R1s), np.array(R2s), np.array(x1s_rot), np.array(x2s_rot), False
 
     if robots_intersect(x_1, x_2):
-        print('Reached goal but intersected')
+        #print('Reached goal but intersected')
         # if True:
         # if False and episode>=7:
             # plot_animation(get_goal(x_1),
@@ -179,7 +169,7 @@ def CADRL(value_model, initial_state_1, initial_state_2, epsilon, dt, episode=0)
             #             get_radius(x_1),
             #             get_radius(x_2))
 
-        return x_1, x_2, True, np.array(R1s), np.array(R2s), np.array(x1s_rot), np.array(x2s_rot)
+        return x_1, x_2, True, np.array(R1s), np.array(R2s), np.array(x1s_rot), np.array(x2s_rot), True
         # TODO - if a robot intersects another but still reaches the goal, should this be counted in training?
     else:
         # if episode >= 7:
@@ -189,7 +179,7 @@ def CADRL(value_model, initial_state_1, initial_state_2, epsilon, dt, episode=0)
         #             x_2[:, 0:2],
         #             get_radius(x_1),
         #             get_radius(x_2))
-        return x_1, x_2, True, np.array(R1s), np.array(R2s), np.array(x1s_rot), np.array(x2s_rot)
+        return x_1, x_2, True, np.array(R1s), np.array(R2s), np.array(x1s_rot), np.array(x2s_rot), False
 
 def reward_vectorized(x1, x2, a, dt):
     '''

@@ -13,6 +13,8 @@ from model import LR, USER, FOLDER, backprop
 from configs import *
 from tqdm import tqdm
 
+from validate_value_fcn import evaluate
+
 
 if __name__ == '__main__':
 
@@ -43,8 +45,10 @@ if __name__ == '__main__':
         print(f'\n====== Episode {training_ep} ======\n')
 
         m = 0
+        collision_counter = 0
+        attempts_counter = 0
         while m != M-1:
-        
+            attempts_counter += 1
             rand_ep = np.random.randint(0, high=len(x_ep_dict.keys()))
             
             # algorithm 2 line 8: random test case (by index)
@@ -61,14 +65,15 @@ if __name__ == '__main__':
             # algorithm 2 line 9
             s_initial_1 = x_ep_dict[rand_ep][rand_idx_1][0]
             s_initial_2 = x_ep_dict[rand_ep][rand_idx_2][0]
-            print(f'Random episode: {rand_ep}')
+            #print(f'Random episode: {rand_ep}')
 
             # s_1, s_2 are Tx9, 9 being the state dimension
-            s_1, s_2, cadrl_successful, Rs1, Rs2, x1s_rot, x2s_rot = CADRL(value_model, s_initial_1, s_initial_2, EPS_GREEDY, DT, episode=training_ep)
-
+            _, _, cadrl_successful, Rs1, Rs2, x1s_rot, x2s_rot, collision = CADRL(value_model, s_initial_1, s_initial_2, EPS_GREEDY, episode=training_ep)
+            if collision: 
+                collision_counter +=1 
+           
             if cadrl_successful:
                 m+=1
-                print(f"CADRL Successful! {s_1.shape[0]}, {s_2.shape[0]}")
                 
                 # algorithm 2 line 10
                 # this is not done correctly, we have to actually back out the values for gamma^tg*vpref
@@ -77,7 +82,7 @@ if __name__ == '__main__':
 
                 # need to implement this function - it's empty now
                 assert(y_1.shape[0] == xs_rot1.shape[0] 
-                and y_2.shape[0] == xs_rot2.shape[0]), "xsrot not same shape as y_1"
+                and y_2.shape[0] == xs_rot2.shape[0]), "#rotated states not same as #ys"
                 # algorithm 2 line 11
                 x_experience[rand_ep][rand_idx_1] = xs_rot1
                 x_experience[rand_ep][rand_idx_2] = xs_rot2
@@ -85,14 +90,11 @@ if __name__ == '__main__':
                 y_experience[rand_ep][rand_idx_2] = y_2
 
         # algorithm 2 line 12
-        #x_train, y_train = create_train_set_from_dict(x_experience, y_experience)
-
+        print(f"{attempts_counter} attemts: {collision_counter} collisions, {m+1} new experiences")
         x_train, y_train, _, _ = load_nn_data(x_experience, y_experience)
-        n_entries = x_train.shape[0]
 
         # algorithm 2 line 13
-        # this is only one training step, we need to do this for many epochs across the whole dataset ## "Not the whole dataset?"
-        # Torstein, can you help with this part?
+        n_entries = x_train.shape[0]
         subset_idx = np.random.choice(n_entries, int(np.floor(n_entries*RL_BATCH_FRAC)), replace=False)
         subset = x_train[subset_idx]
 
@@ -102,5 +104,7 @@ if __name__ == '__main__':
         if np.mod(training_ep, C) == 0:
             # evaluate value model here...
             value_model_prime = value_model
+        
+        evaluate(value_fnc=value_model, num_episodes=2,  visualize=False)
 
     value_model.save(os.path.join(FOLDER, 'post_RL_value_model'))

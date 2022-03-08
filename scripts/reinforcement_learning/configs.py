@@ -18,18 +18,17 @@ RL_BATCH_FRAC = 0.2
 KINEMATIC=True
 GOAL_EPS = 0.5
 MAX_TIME = 25
-
+RADIUS = 1
 
 import os
 USER = os.getlogin() #
 print(USER)
-# USER = 'Brian'
-# USER = 'torstein'
-# USER = 'Valentin'
-# USER = 'Bradley'
+
 if USER == 'torstein':
     FOLDER = "/home/torstein/Stanford/aa277/aa277_project/data"
 elif USER == 'bdobkowski':
     FOLDER  = "/home/bdobkowski/Stanford/AA277/aa277_project/data"
+elif USER == 'bcollico':
+    folder  = '/home/bcollico/github/aa277_project/data'
 else:
     raise Exception('Need to list a folder in on your local machine to store data')
