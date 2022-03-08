@@ -13,7 +13,7 @@ import itertools
 from state_definitions import  get_joint_state, get_joint_state_vectorized, get_rotated_state, get_state
 from nn_utils import get_nn_input, load_traj_data
 from rl_utils import get_goal, get_pos, get_vel, get_current_state, get_radius, get_vpref, propagate_dynamics, \
-robots_intersect, close_to_goal, get_heading
+robots_intersect, close_to_goal, get_heading, fill_vel_heading
 from model import LR, USER, FOLDER
 from configs import *
 
@@ -53,17 +53,22 @@ def CADRL(value_model, initial_state_1, initial_state_2, epsilon, dt, episode=0)
         n_timesteps_x1 = len(x_1)
         n_timesteps_x2 = len(x_2)
 
-        v_filtered_1 = np.ma.average(x_1[:-1, 2:4], axis=0, weights = np.exp(range(len(x_1[:-1])))) # weights the more recent scores more
-        v_filtered_2 = np.ma.average(x_2[:-1, 2:4], axis=0, weights = np.exp(range(len(x_2[:-1])))) # weights the more recent scores more
-
-        # Question: how do we set the velocities for the ~ robot in CADRL?
-        # My feeling is we do both robots in CADRL simultaneously
-        # To do this, I think we'd need to save and load states for individual robots 
-        # rather than loading joint states/trajectories
+        v_filtered_1 = get_filtered_velocity(x_1)
+        v_filtered_2 = get_filtered_velocity(x_2)
+       
+        # Question: how do we set the velocities for the these next states?
         x1_o_nxt = propagate_dynamics(get_current_state(x_1), v_filtered_1, dt)
         x2_o_nxt = propagate_dynamics(get_current_state(x_2), v_filtered_2, dt)
 
-        num_sampled_actions = 36
+        # if t>1.0 and (np.linalg.norm(v_filtered_1 - np.array([0,0])) < 1e-3 or np.linalg.norm(v_filtered_1 - np.array([0,0])) < 1e-3) :
+        #     print(v_filtered_1)
+        #     print(v_filtered_2)
+        #     import pdb;pdb.set_trace()
+
+        x1_o_nxt = fill_vel_heading(x1_o_nxt, v_filtered_1)
+        x2_o_nxt = fill_vel_heading(x2_o_nxt, v_filtered_2)
+
+        num_sampled_actions = 51
 
         # A1 = build_action_space_simple(num_sampled_actions, VMAX)   
         # A2 = build_action_space_simple(num_sampled_actions, VMAX) 
@@ -85,6 +90,9 @@ def CADRL(value_model, initial_state_1, initial_state_2, epsilon, dt, episode=0)
         x1_nxt = propagate_dynamics(curr_state_1, A1, dt)
         x2_nxt = propagate_dynamics(curr_state_2, A2, dt)
 
+        x1_nxt = fill_vel_heading(x1_nxt, A1)
+        x2_nxt = fill_vel_heading(x2_nxt, A2)
+
         x1_o_nxt_all = np.repeat(x1_o_nxt.reshape(1,-1), repeats=num_sampled_actions, axis=0)
         x2_o_nxt_all = np.repeat(x2_o_nxt.reshape(1,-1), repeats=num_sampled_actions, axis=0)
 
@@ -105,49 +113,6 @@ def CADRL(value_model, initial_state_1, initial_state_2, epsilon, dt, episode=0)
         except:
             import pdb;pdb.set_trace()
 
-        #####################################################################################
-        # Brian: I will delete this eventually, but I still use it to test that my vectorized reward  
-        # function gives me the same results as the regular reward function
-
-        # x1_nxt__ = np.zeros((num_sampled_actions, state_dim))
-        # x2_nxt__ = np.zeros((num_sampled_actions, state_dim))
-
-        # lookahead_1__ = np.zeros(num_sampled_actions)
-        # lookahead_2__ = np.zeros(num_sampled_actions)
-
-        # for idx, a in enumerate(A):
-        #     x1_nxt__[idx] = propagate_dynamics(get_current_state(x_1), a, dt)
-        #     x2_nxt__[idx] = propagate_dynamics(get_current_state(x_2), a, dt)
-
-        #     x1_joint__ = model.get_joint_state2(x1_nxt__[idx], x2_o_nxt)
-        #     x2_joint__ = model.get_joint_state2(x2_nxt__[idx], x1_o_nxt)
-
-        #     x1_joint_rotated__ = model.get_rotated_state(x1_joint__)
-        #     x2_joint_rotated__ = model.get_rotated_state(x2_joint__)
-
-        #     assert np.linalg.norm(x1_joint_rotated__ - x1_joint_rotated[idx]) < 1e-4
-        #     assert np.linalg.norm(x2_joint_rotated__ - x2_joint_rotated[idx]) < 1e-4
-
-        #     # does our action have no impact on reward here? should we feed it the propagated state?
-        #     R1__ = reward(get_current_state(x_1), get_current_state(x_2), a, dt)
-        #     R1__2__ = reward(get_current_state(x_2), get_current_state(x_1), a, dt)
-
-        #     try:
-        #         assert np.linalg.norm(R1[idx] - R1__) < 1e-4
-        #         assert np.linalg.norm(R2[idx] - R2__) < 1e-4
-        #     except:
-        #         import pdb;pdb.set_trace()
-
-        #     lookahead_1__[idx] = R1__ + gamma_bar_x1 * value_model(x1_joint_rotated__.reshape(1,-1))
-        #     lookahead_2__[idx] = R2__ + gamma_bar_x2 * value_model(x2_joint_rotated__.reshape(1,-1))
-
-        # try:
-        #     assert np.linalg.norm(lookahead_1 - lookahead_1__.reshape(-1, 1)) < 1e-3
-        #     assert np.linalg.norm(lookahead_2 - lookahead_2__.reshape(-1, 1)) < 1e-3
-        # except:
-        #     import pdb;pdb.set_trace()
-
-        ######################################################################################################
         if random.random() < epsilon:
             idx = np.random.randint(0, len(A1)-1)
             opt_action_1 = random.choice(A1)
@@ -192,6 +157,7 @@ def CADRL(value_model, initial_state_1, initial_state_2, epsilon, dt, episode=0)
             done_2 = True
 
         if n_timesteps_x1*dt > MAX_TIME or n_timesteps_x2*dt > MAX_TIME:
+            print('Robots did not reach goal')
 
             # plot_animation(get_goal(x_1),
             #                get_goal(x_2),
@@ -205,13 +171,13 @@ def CADRL(value_model, initial_state_1, initial_state_2, epsilon, dt, episode=0)
     if robots_intersect(x_1, x_2):
         print('Reached goal but intersected')
         # if True:
-        # # if False and episode>=7:
-        #     plot_animation(get_goal(x_1),
-        #                 get_goal(x_2),
-        #                 x_1[:, 0:2],
-        #                 x_2[:, 0:2],
-        #                 get_radius(x_1),
-        #                 get_radius(x_2))
+        # if False and episode>=7:
+            # plot_animation(get_goal(x_1),
+            #             get_goal(x_2),
+            #             x_1[:, 0:2],
+            #             x_2[:, 0:2],
+            #             get_radius(x_1),
+            #             get_radius(x_2))
 
         return x_1, x_2, True, np.array(R1s), np.array(R2s), np.array(x1s_rot), np.array(x2s_rot)
         # TODO - if a robot intersects another but still reaches the goal, should this be counted in training?
@@ -249,8 +215,10 @@ def reward_vectorized(x1, x2, a, dt):
     R[goal_close] = 1
     dmin_idx      = dmin < 0.2
     R[dmin_idx]   = -0.1 - dmin[dmin_idx]/2
+    # R[dmin_idx]   = -1.0 - dmin[dmin_idx]/2
     dmin_idx_2    = dmin < 0.0
     R[dmin_idx_2] = -0.25
+    # R[dmin_idx_2] = -1.1
 
     return R.reshape(-1, 1)
 
@@ -267,16 +235,16 @@ def build_action_space(kinematic, state):
         velocities = [(i + 1) / 5 * get_vpref(state) for i in range(5)]
         rotations  = [i/4*np.pi/3 - np.pi/6 for i in range(5)]
         actions    = np.array([x for x in itertools.product(velocities, rotations)])
-        a = np.random.uniform(low=0.0, high=get_vpref(state), size=(10, 1)) # TODO: how should we sample actions?
-        b = np.random.uniform(low=-np.pi/6, high=np.pi/6, size=(10, 1)) # TODO: how should we sample actions?
+        a = np.random.uniform(low=0.0, high=get_vpref(state), size=(25, 1)) # TODO: how should we sample actions?
+        b = np.random.uniform(low=-np.pi/6, high=np.pi/6, size=(25, 1)) # TODO: how should we sample actions?
         actions = np.append(actions, np.concatenate((a,b), axis=1), axis=0) # adding option to do nothing (if robot is at goal)
         actions = np.append(actions, np.array([0, 0]).reshape(1,2), axis=0)
     else:
         velocities = [(i + 1) / 5 * get_vpref(state) for i in range(5)]
         rotations  = [i / 4 * 2 * np.pi for i in range(5)]
         actions    = np.array([x for x in itertools.product(velocities, rotations)])
-        a = np.random.uniform(low=0.0, high=get_vpref(state), size=(10, 1)) # TODO: how should we sample actions?
-        b = np.random.uniform(low=-np.pi, high=np.pi, size=(10, 1)) # TODO: how should we sample actions?
+        a = np.random.uniform(low=0.0, high=get_vpref(state), size=(25, 1)) # TODO: how should we sample actions?
+        b = np.random.uniform(low=-np.pi, high=np.pi, size=(25, 1)) # TODO: how should we sample actions?
         actions = np.append(actions, np.concatenate((a,b), axis=1), axis=0) # adding option to do nothing (if robot is at goal)
         actions = np.append(actions, np.array([0, 0]).reshape(1,2), axis=0)
 
@@ -292,7 +260,7 @@ def build_action_space(kinematic, state):
 
     a, b = A.shape
 
-    assert a == 36
+    assert a == 51
     assert b == 2
 
     # if len(state)>1:
@@ -315,3 +283,27 @@ def build_action_space_simple(num_actions, vmax):
     A = np.append(A, np.array([[0, 0]]), axis=0) # adding option to do nothing (if robot is at goal)
 
     return A
+
+def get_filtered_velocity(x):
+    # v_filtered = np.ma.average(x[:-1, 2:4], axis=0, weights = np.exp(range(len(x[:-1])))) # weights the more recent scores more
+
+    # if len(x) <= 4 and len(x) > 1:
+    #     v_filtered = np.ma.average(x[:-1, 2:4], axis=0, weights = np.exp(range(len(x[:-1]))))
+    # elif len(x) > 4:
+    #     v_filtered = np.ma.average(x[-5:-1, 2:4], axis=0, weights = np.exp(range(4)))
+    # else:
+    #     v_filtered = np.array([0, 0])
+
+    if len(x) <= 3 and len(x) > 1:
+        v_filtered = np.mean(x[:-1, 2:4], axis=0)
+    elif len(x) > 3:
+        v_filtered = np.mean(x[-4:-1, 2:4], axis=0)
+    else:
+        v_filtered = np.array([0, 0])
+
+    # if len(x) > 1:
+    #     v_filtered = x[-2, 2:4]
+    # else:
+    #     v_filtered = np.array([0, 0])
+
+    return v_filtered

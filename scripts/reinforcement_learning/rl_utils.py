@@ -59,6 +59,20 @@ def get_heading(x):
 def get_current_state(x):
     return np.copy(x[-1, :])
 
+def fill_vel_heading(state, vel):
+
+    try:
+        a, b = state.shape
+        heading = np.arctan2(vel[:,1], vel[:,0])
+        state[:, 2:4] = vel
+        state[:, 8]   = heading
+    except:
+        heading = np.arctan2(vel[1], vel[0])
+        state[2:4] = vel
+        state[8]   = heading
+
+    return state
+
 def close_to_goal(x):
     '''
     condition for exiting the while loop in CADRL
