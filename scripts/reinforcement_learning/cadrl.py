@@ -104,35 +104,36 @@ def CADRL(value_model, initial_state_1, initial_state_2, epsilon, episode=0, tes
             import pdb;pdb.set_trace()
 
         if not test and random.random() < epsilon:
-            idx = np.random.randint(0, len(A1)-1)
-            opt_action_1 = random.choice(A1)
+            idx1 = np.random.randint(0, len(A1)-1)
+            opt_action_1 = A1[idx1]
         else:
-            idx = np.argmax(lookahead_1)
-            opt_action_1 = A1[idx]
-        R1s.append(R1[idx])
-        x1s_rot.append(x1_joint_rotated[idx])
+            idx1 = np.argmax(lookahead_1)
+            opt_action_1 = A1[idx1]
+
 
         if not test and random.random() < epsilon:
-            idx = np.random.randint(0, len(A2)-1)
-            opt_action_2 = A2[idx]
+            idx2 = np.random.randint(0, len(A2)-1)
+            opt_action_2 = A2[idx2]
         else:
-            idx =  np.argmax(lookahead_2)
-            opt_action_2 = A2[idx]
-        R2s.append(R2[idx])
-        x2s_rot.append(x2_joint_rotated[idx])
+            idx2 =  np.argmax(lookahead_2)
+            opt_action_2 = A2[idx2]
+
 
         if not done_1:  
             x_1_new = propagate_dynamics(get_current_state(x_1), opt_action_1, dt).reshape(1, -1)
             # Q: how should we fill out the velocity in the states? previous timestep?
             x_1[-1, 2:4] = opt_action_1 # velocity
             x_1[-1, 8]   = np.arctan2(opt_action_1[1], opt_action_1[0]) # heading, theta
-            x_1 = np.append(x_1, x_1_new, axis=0)      
+            x_1 = np.append(x_1, x_1_new, axis=0) 
+            R1s.append(R1[idx1])
+            x1s_rot.append(x1_joint_rotated[idx1])     
         if not done_2:
             x_2_new = propagate_dynamics(get_current_state(x_2), opt_action_2, dt).reshape(1, -1)
             x_2[-1, 2:4] = opt_action_2 # velocity
             x_2[-1, 8]   = np.arctan2(opt_action_2[1], opt_action_2[0]) # heading, theta
             x_2 = np.append(x_2, x_2_new, axis=0)
-
+            R2s.append(R2[idx2])
+            x2s_rot.append(x2_joint_rotated[idx2])       
         # print(np.linalg.norm(get_pos(x_1) - get_goal(x_1)))
         # print(np.linalg.norm(get_pos(x_2) - get_goal(x_2)))
 
@@ -155,7 +156,10 @@ def CADRL(value_model, initial_state_1, initial_state_2, epsilon, episode=0, tes
             #                x_2[:, 0:2],
             #                get_radius(x_1),
             #                get_radius(x_2))
-
+            R2s.append(R2[idx2])
+            x2s_rot.append(x2_joint_rotated[idx2]) 
+            R1s.append(R1[idx1])
+            x1s_rot.append(x1_joint_rotated[idx1])       
             return x_1, x_2, False, np.array(R1s), np.array(R2s), np.array(x1s_rot), np.array(x2s_rot), False
 
     if robots_intersect(x_1, x_2):
@@ -169,6 +173,10 @@ def CADRL(value_model, initial_state_1, initial_state_2, epsilon, episode=0, tes
             #             get_radius(x_1),
             #             get_radius(x_2))
 
+        R2s.append(R2[idx2])
+        x2s_rot.append(x2_joint_rotated[idx2]) 
+        R1s.append(R1[idx1])
+        x1s_rot.append(x1_joint_rotated[idx1]) 
         return x_1, x_2, True, np.array(R1s), np.array(R2s), np.array(x1s_rot), np.array(x2s_rot), True
         # TODO - if a robot intersects another but still reaches the goal, should this be counted in training?
     else:
@@ -179,6 +187,10 @@ def CADRL(value_model, initial_state_1, initial_state_2, epsilon, episode=0, tes
         #             x_2[:, 0:2],
         #             get_radius(x_1),
         #             get_radius(x_2))
+        R2s.append(R2[idx2])
+        x2s_rot.append(x2_joint_rotated[idx2]) 
+        R1s.append(R1[idx1])
+        x1s_rot.append(x1_joint_rotated[idx1])      
         return x_1, x_2, True, np.array(R1s), np.array(R2s), np.array(x1s_rot), np.array(x2s_rot), False
 
 def reward_vectorized(x1, x2, a, dt):
