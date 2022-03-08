@@ -57,18 +57,16 @@ if __name__ == '__main__':
             while rand_idx_2 == rand_idx_1:
                 rand_idx_2 = np.random.randint(0, high=len(x_ep_dict[rand_ep].keys()))
 
-            # FOR TESTING ONLY
-            # rand_ep = 74
-            # rand_idx_1 = 1
-            # rand_idx_2 = 0
-
             # algorithm 2 line 9
             s_initial_1 = x_ep_dict[rand_ep][rand_idx_1][0]
             s_initial_2 = x_ep_dict[rand_ep][rand_idx_2][0]
-            #print(f'Random episode: {rand_ep}')
 
             # s_1, s_2 are Tx9, 9 being the state dimension
-            _, _, cadrl_successful, Rs1, Rs2, x1s_rot, x2s_rot, collision = CADRL(value_model, s_initial_1, s_initial_2, EPS_GREEDY, episode=training_ep)
+            _, _, cadrl_successful, Rs1, Rs2, x1s_rot, x2s_rot, collision = CADRL(value_model, 
+                                                                                  s_initial_1, 
+                                                                                  s_initial_2, 
+                                                                                  EPS_GREEDY, 
+                                                                                  episode=training_ep)
             if collision: 
                 collision_counter +=1 
            
@@ -90,13 +88,13 @@ if __name__ == '__main__':
                 y_experience[rand_ep][rand_idx_2] = y_2
 
         # algorithm 2 line 12
-        print(f"{attempts_counter} attemts: {collision_counter} collisions, {m+1} new experiences")
+        print(f"{attempts_counter} attempts: {collision_counter} collisions, {m+1} new experiences")
         x_train, y_train, _, _ = load_nn_data(x_experience, y_experience)
 
         # algorithm 2 line 13
-        n_entries = x_train.shape[0]
+        n_entries  = x_train.shape[0]
         subset_idx = np.random.choice(n_entries, int(np.floor(n_entries*RL_BATCH_FRAC)), replace=False)
-        subset = x_train[subset_idx]
+        subset     = x_train[subset_idx]
 
         backprop(value_model, x_train[subset_idx], y_train[subset_idx], NUM_RL_EPOCHS)
 
