@@ -16,13 +16,21 @@ from tqdm import tqdm
 from validate_value_fcn import evaluate, pass_evaluation
 
 
-if __name__ == '__main__':
-
+def deep_v_learning(retrain=True):
     optimizer = tf.keras.optimizers.SGD(learning_rate=LR, momentum=0.9)
 
     # algorithm 2 line 4
-    value_model = tf.keras.models.load_model(os.path.join(FOLDER, 'initial_value_model'))
-    V_prime = tf.keras.models.load_model(os.path.join(FOLDER, 'initial_value_model'))
+    if retrain:
+        value_model = tf.keras.models.load_model(os.path.join(FOLDER, 'initial_value_model'))
+        training_ep = 0
+        V_prime = tf.keras.models.load_model(os.path.join(FOLDER, 'initial_value_model'))
+
+    else: 
+        value_model = tf.keras.models.load_model(os.path.join(FOLDER, 'post_RL_value_model'))
+        with open(os.path.join(FOLDER, 'training_ep.txt'), "r") as f:
+            l = f.readline()
+            training_ep = int(l)
+        V_prime = tf.keras.models.load_model(os.path.join(FOLDER, 'initial_value_model'))
 
     # algorithm 2 line 5
     # x_dict, y_dict = load_training_test_data(folder)
@@ -39,9 +47,8 @@ if __name__ == '__main__':
     # x_ep_dict[1][2][3] is 10-dimensional, and contains the state from get_state() in model.py
 
     # y_ep_dict is constructed the same way
-
-    for training_ep in range(N_EPISODES):
-
+    while training_ep != N_EPISODES-1:
+        training_ep +=1
         print(f'\n====== Episode {training_ep} ======\n')
 
         m = 0
@@ -117,13 +124,18 @@ if __name__ == '__main__':
         backprop(value_model, x_train[subset_idx], y_train[subset_idx], NUM_RL_EPOCHS,verbose=1)
 
         # algorithm 2 line 14-15
-        res_new = evaluate(value_fnc=value_model, num_episodes=50,  visualize=False)
 
         if np.mod(training_ep, C) == 0:
-            evaluate(value_fnc=value_model, num_episodes=2,  visualize=True)
+            evaluate(value_fnc=value_model, num_episodes=50,  visualize=False)
             # evaluate value model here...
             #res_old = evaluate(value_fnc=V_prime, num_episodes=2, visualize=False)
             #if pass_evaluation(res_new=res_new, res_old=res_old):
             V_prime.set_weights(value_model.get_weights()) 
-        
+            value_model.save(os.path.join(FOLDER, 'post_RL_value_model'))
+            with open(os.path.join(FOLDER, 'training_ep.txt'), "w") as f:
+                f.write(str(training_ep))
     value_model.save(os.path.join(FOLDER, 'post_RL_value_model'))
+
+
+if __name__ == '__main__':
+    deep_v_learning(retrain=False)

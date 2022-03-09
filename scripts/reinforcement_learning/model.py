@@ -95,5 +95,5 @@ if __name__ == '__main__':
     x_dict, v_pref, dt = load_traj_data(FOLDER)
     x_dict_rotated, y_dict = get_nn_input(x_dict, dt, v_pref)
     print("Test data loaded")
-    nn_training(FOLDER, x_dict=x_dict_rotated, y_dict=y_dict, epochs=250)
+    nn_training(FOLDER, x_dict=x_dict_rotated, y_dict=y_dict, epochs=1000)
 

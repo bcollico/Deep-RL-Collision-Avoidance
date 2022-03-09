@@ -120,7 +120,7 @@ def evaluate(value_fnc, visualize, num_episodes, data=None, data_path=FOLDER+"/t
             failures+=1
     mean_val =  np.mean(avg_val_diffs, axis=0 )
     mean_vel = np.mean(avg_vel_diffs, axis=0 )
-    mean_extra_time = np.mean(avg_extra_times, axis=0 )
+    mean_extra_time = np.mean(np.abs(avg_extra_times[:, 0]-avg_extra_times[:, 1]), axis=0 )
     print(f"Successes: {successes}, Collisions: {collisions}, failures: {failures}")
     print("Val diff:", mean_val)
     print("Vel diff:", mean_vel)
