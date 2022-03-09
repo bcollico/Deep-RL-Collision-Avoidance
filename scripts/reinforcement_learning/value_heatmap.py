@@ -5,8 +5,10 @@ from model import create_model
 from state_definitions import get_state, get_joint_state, get_rotated_state
 from itertools import product
 import matplotlib.pyplot as plt
+from matplotlib import rc
 
 USER = 'Bradley'
+GAMMA = 0.8
 
 if USER == 'Brian':
 	folder  = '/home/bdobkowski/Stanford/AA277/aa277_project/data'
@@ -28,11 +30,10 @@ def value_heatmap(value_fcn):
     ymax = 3
     ymin = -ymax
 
-    step = 0.25
+    step = 0.1
 
     xrange = np.arange(xmin,xmax,step=step)
     yrange = np.arange(ymin,ymax,step=step)
-
 
     xrange_plot = np.arange(xmin,xmax+step,step=step)
     yrange_plot = np.arange(ymin,ymax+step,step=step)
@@ -56,9 +57,10 @@ def value_heatmap(value_fcn):
 
     n = np.sqrt(len(output_value))
     # print(np.shape(output_value))
-    zmax = output_value.max()
-    zmin = 0 # output_value.min()
+    #output_value = np.log(output_value[:,:,0]) / np.log(GAMMA)
     output_value = output_value[:,:,0]
+    zmax = output_value.max()
+    zmin = 0 #output_value.min()
     output_value = output_value.reshape(len(xrange),len(yrange))
 
     fig, ax = plt.subplots()
@@ -67,7 +69,10 @@ def value_heatmap(value_fcn):
     
     c = ax.pcolormesh(xrange_plot, yrange_plot, output_value.T, cmap='hot', vmin=zmin, vmax=zmax)
     # c = ax.pcolormesh(output_value, cmap='hot', vmin=zmin, vmax=zmax)
-    fig.colorbar(c, ax=ax)
+    cbar = fig.colorbar(c, ax=ax, label='Estimated Time to Goal')
+    cbar.ax.tick_params(labelsize=16) 
+    cbar.set_label(label='Network Output Value', size=16)
+    ax.tick_params(labelsize=16) 
 
     theta = np.linspace(0, 2*np.pi, num=100, endpoint=True)
     circ_points = np.vstack((np.cos(theta), np.sin(theta)))
@@ -102,17 +107,15 @@ def value_heatmap(value_fcn):
 
     # rc('text',usetex=True)
     ax.set_aspect(1)
-    ax.set_title('Value Network Output')
-    ax.set_xlabel('Robot 2 X Position')
-    ax.set_ylabel('Robot 2 Y Position')
+    ax.set_title('Value Network Output', fontsize=16)
+    ax.set_xlabel('Robot 2 X Position', fontsize=16)
+    ax.set_ylabel('Robot 2 Y Position', fontsize=16)
 
     ax.axis([xmin, xmax, ymin, ymax])
 
-    plt.legend()
+    plt.legend(prop={"size":16})
+    
     plt.show()
-
-
-
 
 def map_fcn(x, value_fcn, s1, s2):
 
@@ -126,7 +129,7 @@ def map_fcn(x, value_fcn, s1, s2):
 
 
 if __name__=='__main__':
-    model_path = folder+"/bradley_value_model/"
+    model_path = folder+"/initial_value_model/"
 
     value_fcn = create_model()
     value_fcn.load_weights(model_path)
