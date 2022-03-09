@@ -28,7 +28,8 @@ def evaluate_value_fcn_propagate(value_fnc, s_initial_1, s_initial_2, visualize)
         i_goal   = goals[i]
         i_vpref  = xs[0, 7]
 
-        i_dg     = np.linalg.norm(xs[:, 0:2]-i_goal, axis=0)
+        i_dg     = np.linalg.norm(xs[:, 0:2]-i_goal, axis=1)
+
 
         #steps_to_goal = np.sum([np.linalg.norm(xs[:, 2:4], axis=0)>0.05])
         steps_to_goal = len(xs)
@@ -41,7 +42,7 @@ def evaluate_value_fcn_propagate(value_fnc, s_initial_1, s_initial_2, visualize)
             if j is not i:
                 j_radius = RADIUS
                 min_idx = min(len(xs), len(xs_other))
-                collision = not np.all(np.linalg.norm(xs[:min_idx, 0:2]-xs_other[:min_idx, 0:2],axis=0)>(i_radius+j_radius))
+                collision = not np.all(np.linalg.norm(xs[:min_idx, 0:2]-xs_other[:min_idx, 0:2],axis=1)>(i_radius+j_radius))
                 # print(np.linalg.norm(i_traj[0:2,:]-j_traj[0:2,:],axis=0))
                 if collision:
                     print(f"Collision between agents {i} and {j}")
@@ -66,7 +67,7 @@ def evaluate_value_fcn_propagate(value_fnc, s_initial_1, s_initial_2, visualize)
     
 
         avg_value_diff = np.append(avg_value_diff, np.mean(np.abs(output_value-true_value)))
-        avg_vel_diff = np.append(avg_vel_diff, np.mean(i_vpref - np.linalg.norm(xs[:steps_to_goal, 2:4], axis=0)))
+        avg_vel_diff = np.append(avg_vel_diff, np.mean(i_vpref - np.linalg.norm(xs[:steps_to_goal, 2:4], axis=1)))
         avg_extra_time = np.append(avg_extra_time, np.mean(extra_time))
     
     #print("Average Value Difference from Truth: ", avg_value_diff)

@@ -177,7 +177,7 @@ def CADRL(value_model, initial_state_1, initial_state_2, epsilon, episode=0, tes
         x2s_rot.append(x2_joint_rotated[idx2]) 
         R1s.append(R1[idx1])
         x1s_rot.append(x1_joint_rotated[idx1]) 
-        return x_1, x_2, True, np.array(R1s), np.array(R2s), np.array(x1s_rot), np.array(x2s_rot), True
+        return x_1, x_2, False, np.array(R1s), np.array(R2s), np.array(x1s_rot), np.array(x2s_rot), True
         # TODO - if a robot intersects another but still reaches the goal, should this be counted in training?
     else:
         # if episode >= 7:

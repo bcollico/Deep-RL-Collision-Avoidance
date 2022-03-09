@@ -102,9 +102,9 @@ if __name__ == '__main__':
         if np.mod(training_ep, C) == 0:
             # evaluate value model here...
             res_new = evaluate(value_fnc=value_model, num_episodes=2,  visualize=False)
-            res_old = evaluate(value_fnc=V_prime, num_episodes=2, visualize=False)
-            if pass_evaluation(res_new=res_new, res_old=res_old):
-                V_prime = tf.keras.models.clone_model(value_model)
+            #res_old = evaluate(value_fnc=V_prime, num_episodes=2, visualize=False)
+            #if pass_evaluation(res_new=res_new, res_old=res_old):
+            V_prime = tf.keras.models.clone_model(value_model)
         
 
     value_model.save(os.path.join(FOLDER, 'post_RL_value_model'))
