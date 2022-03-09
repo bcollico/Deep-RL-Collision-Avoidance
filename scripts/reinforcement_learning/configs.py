@@ -5,7 +5,7 @@ MOMENTUM=0.9
 STEP_SIZE = 150
 
 N_EPISODES = 800
-C          = 1
+C          = 10
 M          = 10
 GAMMA      = 0.8
 VMAX       = 1.0 #??
