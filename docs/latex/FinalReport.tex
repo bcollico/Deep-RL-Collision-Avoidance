@@ -87,6 +87,15 @@ ADD SOME STUFF HERE. MOVE THE REWARD FUNCTION HERE. TALK ABOUT ROTATION INVARIAN
 
 Decentralized, un-communicative collision avoidance will be posed as a partially-observable sequential decision-making problem. The pairwise joint state to be considered by the policy for ego-robot $i$ and neighbor robot $j$ is $\state{ij}{}=\begin{bmatrix} \state{i}{} & \state{j}{o} \end{bmatrix}\inR{14}$ where each robot state is comprised of observable $\state{}{o}$ and hidden $\state{}{h}$ quantities. The observable quantities are position and velocity $\posvec{}, \,  \velvec{} \inR{2}$ and robot body radius $\radius{} \inR{}$, and the hidden quantities are goal position $\posvec{g} \inR{2}$, preferred speed, and heading angle $\vel{pref}, \, \headangle{}\inR{}$.
 
+Because the optimal policy should be invariant to any coordinate transformation (rotation and translation), there is some redundancy in the joint state sjn. In order to get rid off this ambiguity, an agent-centric frame is defined, with the origin at the agent’s position, and the x-axis pointing toward the agent’s goal, that is :
+
+An illustration can be found here.
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.5\textwidth]{docs/latex/figures/rotated_state.png}
+    \caption{Illustration of the rotational invariance for the policy}
+\end{figure}
+
 
 
 The considered action space is continuous with a policy $\policy{}(\state{ij}{})=\ctrl{i} \, : \, \mathbb{R}^{15}\mapsto\mathbb{R}^2$. Reasonable bounds will be placed on the commanded control input. Single-integrator dynamic will be used as the baseline model: 
@@ -190,19 +199,20 @@ In order to encourage interaction in training, we have divided the environment i
 
 \begin{figure*}[t]
     \centering
-    \begin{subfigure}[b]{0.45\textwidth}
+    \begin{subfigure}[b]{0.49\textwidth}
          \centering
-         \includegraphics[width=0.4\textwidth]{docs/latex/figures/heatmap_x_Robot_2.png}
-         \caption{Original Orientation}
+         \includegraphics[width=\textwidth]{docs/latex/figures/heatmap_x_Robot_2.png}
+         \caption{Original Orientation.}
          \label{fig:heatmap_x}
      \end{subfigure}
      \hfill
-     \begin{subfigure}[b]{0.45\textwidth}
+     \begin{subfigure}[b]{0.49\textwidth}
          \centering
-         \includegraphics[width=0.4\textwidth]{docs/latex/figures/heatmap_y_Robot_2.png}
-         \caption{Rotated Orientation}
+         \includegraphics[width=\textwidth]{docs/latex/figures/heatmap_y_Robot_2.png}
+         \caption{Rotated Orientation.}
          \label{fig:heatmap_x}
      \end{subfigure}
+     \caption{Example of Rotation Invariance of Supervised Learning Value Network Output.}
 \end{figure*}
 
 
