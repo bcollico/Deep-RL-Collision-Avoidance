@@ -13,8 +13,12 @@ def evaluate_value_fcn_propagate(value_fnc, s_initial_1, s_initial_2, visualize)
     
     
     xs1, xs2, cadrl_successful, Rs1, Rs2, x1s_rot, x2s_rot, collision = CADRL(value_fnc, s_initial_1, s_initial_2, 0.0, test=True)
-
-    goals = [xs1[0, 5:6],  xs2[0, 5:6]]
+    
+    
+    
+    if not cadrl_successful : 
+        return np.zeros(2), np.zeros(2), np.zeros(2), cadrl_successful, collision
+    goals = [xs1[0, 5:7],  xs2[0, 5:7]]
 
     dt = DT
     gamma = GAMMA
@@ -57,13 +61,14 @@ def evaluate_value_fcn_propagate(value_fnc, s_initial_1, s_initial_2, visualize)
 
             s_12 = rotated_states[i][step]
 
-            # print(s_12)
 
             output_value[0,step] = value_fnc(np.array([s_12]))
             true_value[0,step]   = gamma**(tg*i_vpref)
             extra_time[0,step]   = tg - dg/i_vpref
-
-    
+            try:
+                assert(extra_time[0, step] >=0), "negative extra time"
+            except:
+                return
 
         avg_value_diff = np.append(avg_value_diff, np.mean(np.abs(output_value-true_value)))
         avg_vel_diff = np.append(avg_vel_diff, np.mean(i_vpref - np.linalg.norm(xs[:steps_to_goal, 2:4], axis=1)))
@@ -75,9 +80,9 @@ def evaluate_value_fcn_propagate(value_fnc, s_initial_1, s_initial_2, visualize)
     if visualize:
         pass
         #plot_traj(, goals, radius)
-    return avg_value_diff, avg_vel_diff, avg_extra_time
+    return avg_value_diff, avg_vel_diff, avg_extra_time, cadrl_successful, collision
 
-def evaluate(value_fnc, visualize, num_episodes, data_path=FOLDER+"/static_tests.csv"):
+def evaluate(value_fnc, visualize, num_episodes, data_path=FOLDER+"/training_data_100sim.csv"):
     data = read_training_data(data_path)
 
 
@@ -88,7 +93,12 @@ def evaluate(value_fnc, visualize, num_episodes, data_path=FOLDER+"/static_tests
     avg_val_diffs = np.zeros((0, robots_count))
     avg_vel_diffs = np.zeros((0, robots_count))
     avg_extra_times = np.zeros((0, robots_count))
-    for ep in ep_list:
+
+    successes = 0
+    collisions = 0
+    failures = 0
+
+    for ep in ep_list[:num_episodes]:
 
         episode = data.traj[ep]
         s_robo1 = episode.X[0][0,0:4].T
@@ -99,18 +109,26 @@ def evaluate(value_fnc, visualize, num_episodes, data_path=FOLDER+"/static_tests
     
 
         res = evaluate_value_fcn_propagate(value_fnc, s_initial_1, s_initial_2, visualize=visualize)
-        avg_val_diff, avg_vel_diff, avg_extra_time = res
+        avg_val_diff, avg_vel_diff, avg_extra_time, success, collision = res
 
-        avg_val_diffs = np.vstack((avg_val_diffs, avg_val_diff))
-        avg_vel_diffs = np.vstack((avg_vel_diffs, avg_vel_diff))
-        avg_extra_times = np.vstack((avg_extra_times, avg_extra_time))
+        if success:
+            successes+=1
+        
+            avg_val_diffs = np.vstack((avg_val_diffs, avg_val_diff))
+            avg_vel_diffs = np.vstack((avg_vel_diffs, avg_vel_diff))
+            avg_extra_times = np.vstack((avg_extra_times, avg_extra_time))
+        elif collision:
+            collisions+=1
+        else:
+            failures+=1
     mean_val =  np.mean(avg_val_diffs, axis=0 )
     mean_vel = np.mean(avg_vel_diffs, axis=0 )
     mean_extra_time = np.mean(avg_extra_times, axis=0 )
+    print(f"Successes: {successes}, Collisions: {collisions}, failures: {failures}")
     print("Val diff:", mean_val)
     print("Vel diff:", mean_vel)
     print("Extra time", mean_extra_time)
-    return mean_val, mean_vel, mean_extra_time
+    return mean_val, mean_vel, mean_extra_time, successes, collisions, failures
 
 
 def pass_evaluation(res_new, res_old):
@@ -125,13 +143,13 @@ if __name__=='__main__':
     # path = folder+"/training_data_100sim.csv"
     initial_model_path = FOLDER+"/initial_value_model/"
     post_rl_model_path = FOLDER+"/post_RL_value_model/"
-    data_path  = FOLDER+"/test_data.csv"
+    data_path  = FOLDER+"/training_data_100sim.csv"
 
     initial_value_fnc = tf.keras.models.load_model(initial_model_path)
     post_rl_fnc = tf.keras.models.load_model(post_rl_model_path)
 
     print("Initial value model evaluation")
-    evaluate(value_fnc=initial_value_fnc, visualize=False, num_episodes=100,  data_path=data_path)
+    evaluate(value_fnc=initial_value_fnc, visualize=False, num_episodes=100)
     print("Post RL value model evaluation")
     evaluate(value_fnc=post_rl_fnc, visualize=False, num_episodes=100,  data_path=data_path)
     

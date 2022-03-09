@@ -3,17 +3,15 @@ from read_training_data import read_training_data
 import json
 import os
 from state_definitions import  get_joint_state, get_rotated_state, get_state, get_joint_state_vectorized
-
+from configs import *
 GAMMA = 0.8
 
 def load_traj_data(folder):
  
-    data = read_training_data(os.path.join(folder, 'training_data_1000sim.csv'))
-    #data = read_training_data(os.path.join(folder, 'train_data.csv'))
+    #data = read_training_data(os.path.join(folder, 'training_data_1000sim.csv'))
+    data = read_training_data(os.path.join(folder, 'train_data.csv'))
 
-    dt = data.dt
     radius = 1.0
-
     x_ep_dict = {}
 
     episodes_count = len(data.traj)
@@ -45,13 +43,14 @@ def load_traj_data(folder):
 
         x_ep_dict[ep] = x_robot_dict
 
-    return x_ep_dict, v_pref, dt
+    return x_ep_dict, v_pref, data.dt
 
 
-def get_nn_input(x_dict, v_pref, dt):
+def get_nn_input(x_dict, dt, v_pref):
  
-    v_pref = v_pref
+    #v_pref = VMAX
     gamma = GAMMA
+    #dt = DT
 
 
     
@@ -87,9 +86,9 @@ def get_nn_input(x_dict, v_pref, dt):
                     joint = get_joint_state(state_i, state_j)
 
                     xs_rotated.append(get_rotated_state(joint).tolist())
-                    
-                    y = get_y(v_pref, gamma, (N-timestep+1)*dt)
-                    ys.append(y.tolist())
+
+                    y = get_y(v_pref, gamma, (N-timestep+1)*(dt))
+                    ys.append((y).tolist())
 
 
 

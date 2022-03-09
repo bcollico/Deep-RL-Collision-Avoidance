@@ -23,11 +23,12 @@ if __name__ == '__main__':
     # algorithm 2 line 4
     value_model = tf.keras.models.load_model(os.path.join(FOLDER, 'initial_value_model'))
     V_prime = tf.keras.models.clone_model(value_model)
+    V_prime.set_weights(value_model.get_weights())
 
     # algorithm 2 line 5
     # x_dict, y_dict = load_training_test_data(folder)
     x_ep_dict, v_pref, dt = load_traj_data(FOLDER)
-    x_dict_rotated, y_ep_dict = get_nn_input(x_ep_dict, v_pref, dt)
+    x_dict_rotated, y_ep_dict = get_nn_input(x_ep_dict, dt, v_pref)
 
     x_experience = x_dict_rotated.copy()
     y_experience = y_ep_dict.copy()
@@ -55,6 +56,8 @@ if __name__ == '__main__':
 
         while m != M-1:
             attempts_counter += 1
+            if attempts_counter % 10==0: 
+                print(attempts_counter, collision_counter, m)
             rand_ep = np.random.randint(0, high=len(x_ep_dict.keys()))
             
             # algorithm 2 line 8: random test case (by index)
@@ -105,12 +108,14 @@ if __name__ == '__main__':
         backprop(value_model, x_train[subset_idx], y_train[subset_idx], NUM_RL_EPOCHS,verbose=1)
 
         # algorithm 2 line 14-15
+        res_new = evaluate(value_fnc=value_model, num_episodes=50,  visualize=False)
+
         if np.mod(training_ep, C) == 0:
             # evaluate value model here...
-            res_new = evaluate(value_fnc=value_model, num_episodes=2,  visualize=False)
             #res_old = evaluate(value_fnc=V_prime, num_episodes=2, visualize=False)
             #if pass_evaluation(res_new=res_new, res_old=res_old):
             V_prime = tf.keras.models.clone_model(value_model)
-        
+            V_prime.set_weights(value_model.get_weights())
+
 
     value_model.save(os.path.join(FOLDER, 'post_RL_value_model'))
