@@ -15,10 +15,23 @@ elif USER == 'Bradley':
 else:
 	raise Exception('Need to set user folder')
 
-def plot_traj(states:dict(), goals:dict, radius:dict(), dt=0.1):
-
+#def plot_traj(states:dict(), goals:dict, radius:dict(), dt=0.1):
+def plot_traj(s1, s2, dt=0.1):
     # x_ep_dict[1][2][3] is 10-dimensional, and contains the state from get_state() in model.py
     # this function assumes that x_ep_dict[i_ep] is passed as the input
+
+    states = dict()
+    goals  = dict()
+    radius = dict()
+
+    states['1'] = s1[:,0:4].T
+    states['2'] = s2[:,0:4].T
+
+    goals['1']  = s1[0,5:7]
+    goals['2']  = s2[0,5:7]
+
+    radius['1']  = s1[0,4]
+    radius['2']  = s2[0,4]
 
     n_agents = len(states.keys())
     if n_agents < 5:
