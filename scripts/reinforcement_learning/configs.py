@@ -22,7 +22,10 @@ MAX_TIME = 25
 RADIUS = 1
 
 import os
-USER = os.getlogin() #
+try:
+    USER = os.getlogin() #
+except:
+    USER = 'bcollico'
 print(USER)
 
 if USER == 'torstein':
@@ -30,6 +33,6 @@ if USER == 'torstein':
 elif USER == 'bdobkowski':
     FOLDER  = "/home/bdobkowski/Stanford/AA277/aa277_project/data"
 elif USER == 'bcollico':
-    folder  = '/home/bcollico/github/aa277_project/data'
+    FOLDER  = "/home/bcollico/github/aa277_project/data"
 else:
     raise Exception('Need to list a folder in on your local machine to store data')
