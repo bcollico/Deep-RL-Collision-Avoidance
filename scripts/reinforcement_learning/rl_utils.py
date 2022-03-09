@@ -128,6 +128,11 @@ def find_y_values(V_prime, state_sequence0, state_sequence1, reward_sequence0, g
         # approximate the value with TD prediction based on the next state
         value = reward0 + gamma * V_prime(np.array([next_state0])).numpy().item()
 
+        # try:
+        #     assert V_prime(np.array([next_state0])).numpy().item() >= 0.0
+        # except:
+        #     import pdb;pdb.set_trace()
+
         # penalize non-cooperating behaviors
         #state1 = state_sequence1[step]
         #if state0 is None:
@@ -146,5 +151,10 @@ def find_y_values(V_prime, state_sequence0, state_sequence1, reward_sequence0, g
             value -= 0.1
         xs.append(state0)
         ys.append(value)
+
+    # try:
+    #     assert np.all(np.array(ys) >= 0)
+    # except:
+    #     import pdb;pdb.set_trace()
     
     return np.array(xs), np.array(ys)

@@ -45,8 +45,7 @@ def create_model(input_shape=15):
         tf.keras.layers.Dense(100, activation = "relu", name="layer2"), 
         tf.keras.layers.Dense(100, activation = "relu", name="layer3"), 
         tf.keras.layers.Dense(output_shape, name="final_layer", 
-                kernel_regularizer=tf.keras.regularizers.l1_l2(l1=1e-8, l2=1e-7)),
-        Clip()
+                kernel_regularizer=tf.keras.regularizers.l1_l2(l1=1e-8, l2=1e-7))
     ])
     model.summary()
 
