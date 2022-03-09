@@ -106,15 +106,7 @@ def CADRL(value_model, initial_state_1, initial_state_2, epsilon, episode=0, tes
         lookahead_1 = R1 + gamma_bar_x1 * value_model(x1_joint_rotated)
         lookahead_2 = R2 + gamma_bar_x2 * value_model(x2_joint_rotated)
 
-        # try:
-        #     assert np.all(value_model(x1_joint_rotated)<1.0)
-        # except:
-        #     import pdb;pdb.set_trace()
-
-        # try:
-        #     assert np.all(value_model(x1_joint_rotated)>=0.0)
-        # except:
-        #     import pdb;pdb.set_trace()
+        
 
         if not test and random.random() < epsilon:
             idx1 = np.random.randint(0, len(A1)-1)
