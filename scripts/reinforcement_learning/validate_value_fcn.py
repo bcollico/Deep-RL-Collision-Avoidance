@@ -20,7 +20,7 @@ def evaluate_value_fcn_propagate(value_fnc, s_initial_1, s_initial_2, visualize)
     gamma = GAMMA
     rotated_states = [x1s_rot, x2s_rot]
     avg_value_diff = np.array([])
-    avg_vel_diff = np.array([])
+    avg_vel_diff   = np.array([])
     avg_extra_time = np.array([])
     for i, xs in enumerate([xs1, xs2]):
 
