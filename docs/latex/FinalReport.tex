@@ -63,7 +63,7 @@ Long et. al. \cite{long2018} also formulate the collision avoidance problem as a
 
 While the aforementioned reinforcement learning strategies demonstrated great success, they did not explicitly encode agent cooperation into their learned value networks. Sartoretti et. al. \cite{sartoretti2019} attempt to impart this behavior into decentralized collision avoidance by crafting a reward function that penalizes actions that hinder other agents in the environment. In addition, the authors use a joint reinforcement learning and imitation learning strategy, similar to \cite{chen2017cadrl}, that randomly introduces episodes of ‘expert’ trajectory demonstrations into the learning process. The problem is formulated as a partially observable sequential decision-making problem, where the partial-observability is introduced by limiting the field-of-view that each robot can see in the environment. This work, although promising in terms of scalability and collaborative collision avoidance and trajectory planning, is limited in scope due to its discrete state and action space, whereas the previously surveyed deep reinforcement learning collision avoidance works operated on continuous state and action spaces.
 
-Kahn et. al. \cite{kahn2017} attempt to address the problem of online reinforcement learning for collision avoidance. By recognizing that agents must experience collisions to learn how to avoid them, they formulate an uncertainty-aware reinforcement process that uses a velocity-dependent collision cost function in tandem with uncertainty-aware collision estimates that results in agents navigating uncertain environments, and thereby experiencing collisions, at signficicantly lower speeds than traditional reinforcement learning methods.
+Kahn et. al. \cite{kahn2017} attempt to address the problem of online reinforcement learning for collision avoidance. By recognizing that agents must experience collisions to learn how to avoid them, they formulate an uncertainty-aware reinforcement process that uses a velocity-dependent collision cost function in tandem with uncertainty-aware collision estimates that results in agents navigating uncertain environments, and thereby experiencing collisions, at significantly lower speeds than traditional reinforcement learning methods.
 %%
 
 %% Valentin
@@ -81,9 +81,15 @@ Given that the state-of-the-art model-based methods in collision avoidance have 
 % Despite the demonstrated performance of learning-based methods in collision avoidance, there has not been a one-to-one comparison of state-of-the-art methods. For example, the authors in \cite{long2018} mention the work of \cite{chen2017cadrl} in their relevant work, but fail to compare performance to their algorithm, choosing only to test against the state-of-the-art model-based method and a pure supervised-learning approach. The intent of this project is to implement these two learning-based methods for crafting collision avoidance polices and directly comparing them in a common simulation environment.
 
 \subsection{Problem Formulation}
+
+ADD SOME STUFF HERE. MOVE THE REWARD FUNCTION HERE. TALK ABOUT ROTATION INVARIANCE\\
+
+
 Decentralized, un-communicative collision avoidance will be posed as a partially-observable sequential decision-making problem. The pairwise joint state to be considered by the policy for ego-robot $i$ and neighbor robot $j$ is $\state{ij}{}=\begin{bmatrix} \state{i}{} & \state{j}{o} \end{bmatrix}\inR{14}$ where each robot state is comprised of observable $\state{}{o}$ and hidden $\state{}{h}$ quantities. The observable quantities are position and velocity $\posvec{}, \,  \velvec{} \inR{2}$ and robot body radius $\radius{} \inR{}$, and the hidden quantities are goal position $\posvec{g} \inR{2}$, preferred speed, and heading angle $\vel{pref}, \, \headangle{}\inR{}$.
 
-The considered action space is continuous with a policy $\policy{}(\state{ij}{})=\ctrl{i} \, : \, \mathbb{R}^{14}\mapsto\mathbb{R}^2$. Reasonable bounds will be placed on the commanded control input. Single-integrator dynamic will be used as the baseline model: 
+
+
+The considered action space is continuous with a policy $\policy{}(\state{ij}{})=\ctrl{i} \, : \, \mathbb{R}^{15}\mapsto\mathbb{R}^2$. Reasonable bounds will be placed on the commanded control input. Single-integrator dynamic will be used as the baseline model: 
 \begin{alignat}{3}
 & \state{i}{t+1} & \ = \ & \state{i}{t} + \ctrl{i}{t}\dt = \state{i}{t} + \policy{}(\state{ij}{})\dt \label{eqn:dyn1} \\
 & \state{j}{t+1} & \ = \ &\state{j}{t} + \ctrl{j}{t}\dt = \state{j}{t} + \policy{}(\state{ji}{})\dt \label{eqn:dyn2} 
@@ -107,16 +113,101 @@ will then be used to retrieve the optimal policy as
     &&&\qquad\gamma^{\dt \cdot \vel{pref}} \int_{\state{ij}{t+1}} \transition{\state{ij}{t}}{\state{ij}{t+1}}{\ctrl{i}{}} \Value(\state{ij}{t+1}) \, d\state{ij}{t+1}
 \end{alignat}
 \subsection{Proposed experiments}
-The resulting policy with be evaluated in unstructured environments (no modelled obstacles) with varying degrees of change from the original application.\\
+The resulting policy is evaluated in unstructured environments (no modelled obstacles) with varying degrees of change from the original application.\\
 
 An experiment we wish to run is to put our agent with an agent that has another policy, so that the reciprocity hypothesis does not stand. Other robots may become stationary obstacles or behave in a non-cooperative manner, part of the robot state may become corrupted with error, the assumed dynamics model undergoes a slight change. The goal is to perturb the expected conditions for the robots and evaluate the method under these adversarial conditions.\\
 
-One parameter we want to change is $$\gamma$$, the discount factor. Currently $$\gamma=0.8$$, and we would like to lower it to see the influence it has on metrics such as the time to goal. The lower $$\gamma$$ is, the less importance is put on further states, and we do not know how would that translate in terms of time to goal.\\
+One parameter we want to change is $\gamma$, the discount factor. Currently $\gamma=0.8$, and we would like to lower it to see the influence it has on metrics such as the time to goal. The lower $\gamma$ is, the less importance is put on further states, and we do not know how would that translate in terms of time to goal.\\
+
+A function we wish to modify is the reward function. This function awards
+the agent for reaching its goal, and penalizes the agent for
+getting too close or colliding with the other agent.
+Currently, the reward function is :
+\begin{equation} 
+\Reward{}(\state{jn}{}, \, \textbf{a}))=
+\left\{
+    \begin{array}{ll}
+        -0.25 & \mbox{if } d_{min}<0  \\
+        -0.1 - d_{min}/2 & \mbox{else if } d_{min}<0.2\\
+        1 & \mbox{else if }  \textbf{p}=p_{g} \\
+        0 & \mbox{otherwise }\\
+    \end{array}
+\right. 
+\end{equation}
+where $d_{min}$ is the minimum separation distance between
+the two agents within a duration of $\Delta t$,
+We could change the values the reward function can take, as well as the value of $d_{min}$.\\
+
+
+In our algorithm, cooperation is encouraged by adding a penalty term based on a comparison of the
+two agents’ extra time to reach the goal,
+\begin{equation} 
+t_{e} = t_{g}- \frac{d_{g}}{v_{pref}} 
+\end{equation}
+If $t_{e} < e_{l}$ and $t_{e} > e_{u}$, which corresponds to a scenario
+where the agent reached its goal quickly but the other agent
+took a long time, an penalty of 0.1 would be subtracted from
+the training value. Playing with this penalty term is one of our experiment. We are basically tuning the aggressiveness of our agent, as a penalty closer to 0 makes it less cooperative.
 
 
 
 \subsection{Metrics used}
-Another objective is to have the same extra time spent to reach goals for both agents. This extra time is the time added compared to going straight toward goal at the preferred speed for each robot. TALK ABOUT THE METRICS here.
+In order to evaluate our network, we compare our network with ORCA over 1,000 sample trajectories on the following metrics :
+
+\begin{itemize}
+    \item average time to goal. This time to goal needs to be as low as possible.
+    \item percentage of collision-free trajectories. We expect our network to have less collision-free trajectories than ORCA.
+    \item average velocity. This velocity should be as close as possible to the preferred velocity.
+    \item minimum separation $d_{min}$. 
+    \item extra-time to goal : we want to have the same extra time spent to reach goals for both agents, showing that they cooperate equally. This extra time is the time added compared to going straight toward goal at the preferred speed for each robot.
+    \begin{equation}
+\overline{t}_{e}=\sum_{i=1}^n (t_{i,g}-\frac{\|  \textbf{p}_{i,0}-\textbf{p}_{i,g}\|}{v})
+\end{equation}
+where $t_{i,g}$ is the \textit{i}th agent’s time to reach its goal, and the
+second term is a lower bound of $t_{i,g}$ (to go straight toward
+goal at the preferred speed).
+\end{itemize}
+
+\section{Results}
+
+\subsection{Environment of the problem}
+
+
+
+In order to encourage interaction in training, we have divided the environment in two, and put robot 0 on the left half plane, and robot 1 on the right half plane. For each robot, we created 1,000 randoms initial states on each side of the half plane. The gap between the two initial states distributions can be explained as we constrain the robot not to be colliding at the initial state. The goal states are in the other half plane for each robot, so that there are some possible collisions happening. Note that some trajectories might be collision-free so that robots just go straight towards their goal at their preferred speed. Each trajectory is 100 step-long, and with 2 robots having 1,000 initial states, we get at maximum 200,000 states, but since the algorithm stops when the goal is reached, we often only compute around 100,000 points.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.4\textwidth]{docs/latex/figures/train_states_distribution.png}
+    \caption{Plot of the initial states distribution for 2 robots with 1,000 goals}
+\end{figure}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.4\textwidth]{docs/latex/figures/train_goals_distribution.png}
+    \caption{Plot of the initial goals distribution for 2 robots with 1,000 goals}
+\end{figure}
+
+\begin{figure*}[t]
+    \centering
+    \begin{subfigure}[b]{0.45\textwidth}
+         \centering
+         \includegraphics[width=0.4\textwidth]{docs/latex/figures/heatmap_x_Robot_2.png}
+         \caption{Original Orientation}
+         \label{fig:heatmap_x}
+     \end{subfigure}
+     \hfill
+     \begin{subfigure}[b]{0.45\textwidth}
+         \centering
+         \includegraphics[width=0.4\textwidth]{docs/latex/figures/heatmap_y_Robot_2.png}
+         \caption{Rotated Orientation}
+         \label{fig:heatmap_x}
+     \end{subfigure}
+\end{figure*}
+
+
+\section{Conclusion}
+In this paper, we have adapted the method from Chen et. al. \cite{chen2017cadrl}, modifying several parameters and functions. In order to evaluate our method, we compared it to ORCA over 1000 sample trajectories.
 
 \bibliographystyle{IEEEtran.bst}
 \bibliography{references.bib}
