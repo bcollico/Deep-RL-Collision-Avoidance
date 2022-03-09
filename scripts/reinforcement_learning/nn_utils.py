@@ -6,9 +6,12 @@ from state_definitions import  get_joint_state, get_rotated_state, get_state, ge
 from configs import *
 GAMMA = 0.8
 
-def load_traj_data(folder):
- 
-    data = read_training_data(os.path.join(folder, 'train_data.csv'))
+def load_traj_data(folder, data_type='train'):
+
+    if data_type == 'train': 
+        data = read_training_data(os.path.join(folder, 'train_data.csv'))
+    else:
+        data = read_training_data(os.path.join(folder, 'test_data.csv'))
 
     radius = 1.0
     x_ep_dict = {}

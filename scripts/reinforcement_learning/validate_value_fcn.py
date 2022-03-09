@@ -79,7 +79,7 @@ def evaluate_value_fcn_propagate(value_fnc, s_initial_1, s_initial_2, visualize,
         plot_traj(xs1, xs2, dt=dt)
     return avg_value_diff, avg_vel_diff, avg_extra_time, cadrl_successful, collision
 
-def evaluate(value_fnc, visualize, num_episodes, data=None, data_path=FOLDER+"/training_data_100sim.csv", animate=False):
+def evaluate(value_fnc, visualize, num_episodes, data=None, data_path=FOLDER+"/test_data.csv", animate=False):
     if data is None:
         data = read_training_data(data_path)
     
@@ -91,9 +91,9 @@ def evaluate(value_fnc, visualize, num_episodes, data=None, data_path=FOLDER+"/t
     avg_vel_diffs = np.zeros((0, robots_count))
     avg_extra_times = np.zeros((0, robots_count))
 
-    successes = 0
+    successes  = 0
     collisions = 0
-    failures = 0
+    failures   = 0
 
     for ep in ep_list[:num_episodes]:
 

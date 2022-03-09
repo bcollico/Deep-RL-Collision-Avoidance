@@ -15,6 +15,7 @@ EPS_GREEDY_MIN = 0.1
 # epsilon greedy should decay from 0.5 to 0.1 linearly
 NUM_RL_EPOCHS = 30
 RL_BATCH_FRAC = 0.2
+REWARD=0
 
 KINEMATIC=True
 GOAL_EPS = 0.5
