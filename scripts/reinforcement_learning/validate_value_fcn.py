@@ -6,11 +6,20 @@ from state_definitions import get_state, get_joint_state, get_rotated_state
 import tensorflow as tf
 import os
 from cadrl import CADRL
-
-def evaluate_value_fcn_propagate(value_fnc, s_initial_1, s_initial_2, visualize, dt=DT):
+from rl_utils import get_goal, get_radius
+from cadrl import plot_animation
+def evaluate_value_fcn_propagate(value_fnc, s_initial_1, s_initial_2, visualize, dt=DT, animate=False):
     
     xs1, xs2, cadrl_successful, Rs1, Rs2, x1s_rot, x2s_rot, collision = CADRL(value_fnc, s_initial_1, s_initial_2, 0.0, test=True)
     
+   
+    if animate:
+        plot_animation(get_goal(xs1),
+                    get_goal(xs2),
+                    xs1[:, 0:2],
+                    xs2[:, 0:2],
+                    get_radius(xs1),
+                    get_radius(xs2))
     if not cadrl_successful : 
         return np.zeros(2), np.zeros(2), np.zeros(2), cadrl_successful, collision
     goals = [xs1[0, 5:7],  xs2[0, 5:7]]
@@ -47,7 +56,7 @@ def evaluate_value_fcn_propagate(value_fnc, s_initial_1, s_initial_2, visualize,
 
             dg      = i_dg[step]
             t       = step*dt
-            tg      = (steps_to_goal-step)*dt
+            tg      = (steps_to_goal-step+1)*dt
 
             s_12 = rotated_states[i][step]
 
@@ -70,7 +79,7 @@ def evaluate_value_fcn_propagate(value_fnc, s_initial_1, s_initial_2, visualize,
         plot_traj(xs1, xs2, dt=dt)
     return avg_value_diff, avg_vel_diff, avg_extra_time, cadrl_successful, collision
 
-def evaluate(value_fnc, visualize, num_episodes, data=None, data_path=FOLDER+"/training_data_100sim.csv"):
+def evaluate(value_fnc, visualize, num_episodes, data=None, data_path=FOLDER+"/training_data_100sim.csv", animate=False):
     if data is None:
         data = read_training_data(data_path)
     
@@ -96,7 +105,7 @@ def evaluate(value_fnc, visualize, num_episodes, data=None, data_path=FOLDER+"/t
         s_initial_2 = get_state(s_robo2, RADIUS, episode.Pg[1][0], episode.Pg[1][1], episode.Vmax[1])
     
 
-        res = evaluate_value_fcn_propagate(value_fnc, s_initial_1, s_initial_2, visualize=visualize, dt=dt)
+        res = evaluate_value_fcn_propagate(value_fnc, s_initial_1, s_initial_2, visualize=visualize, animate=animate)
         avg_val_diff, avg_vel_diff, avg_extra_time, success, collision = res
 
         if success:
@@ -134,11 +143,11 @@ if __name__=='__main__':
 
     data = read_training_data(data_path)
 
-    # initial_value_fnc = tf.keras.models.load_model(initial_model_path)
+    initial_value_fnc = tf.keras.models.load_model(initial_model_path)
     post_rl_fnc = tf.keras.models.load_model(post_rl_model_path)
 
     # print("Initial value model evaluation")
-    # evaluate(value_fnc=initial_value_fnc, visualize=True, num_episodes=100, data=data, data_path=None)
+    evaluate(value_fnc=initial_value_fnc, visualize=False, num_episodes=100, data=data, data_path=None, animate=False)
     print("Post RL value model evaluation")
-    evaluate(value_fnc=post_rl_fnc, visualize=True, num_episodes=100,  data=data, data_path=None)
+    evaluate(value_fnc=post_rl_fnc, visualize=False, num_episodes=100,  data=data, data_path=None, animate=False)
     
