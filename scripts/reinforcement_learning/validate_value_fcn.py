@@ -13,8 +13,11 @@ def evaluate_value_fcn_propagate(value_fnc, s_initial_1, s_initial_2, visualize)
     
     
     xs1, xs2, cadrl_successful, Rs1, Rs2, x1s_rot, x2s_rot, collision = CADRL(value_fnc, s_initial_1, s_initial_2, 0.0, test=True)
+    
+    
+    
     if not cadrl_successful : 
-        return np.zeros(2), np.zeros(2), np.zeros(2)
+        return np.zeros(2), np.zeros(2), np.zeros(2), cadrl_successful, collision
     goals = [xs1[0, 5:7],  xs2[0, 5:7]]
 
     dt = DT
@@ -77,7 +80,7 @@ def evaluate_value_fcn_propagate(value_fnc, s_initial_1, s_initial_2, visualize)
     if visualize:
         pass
         #plot_traj(, goals, radius)
-    return avg_value_diff, avg_vel_diff, avg_extra_time
+    return avg_value_diff, avg_vel_diff, avg_extra_time, cadrl_successful, collision
 
 def evaluate(value_fnc, visualize, num_episodes, data_path=FOLDER+"/static_tests.csv"):
     data = read_training_data(data_path)
@@ -90,6 +93,10 @@ def evaluate(value_fnc, visualize, num_episodes, data_path=FOLDER+"/static_tests
     avg_val_diffs = np.zeros((0, robots_count))
     avg_vel_diffs = np.zeros((0, robots_count))
     avg_extra_times = np.zeros((0, robots_count))
+
+    successes = 0
+    collisions = 0
+    failures = 0
     for ep in ep_list:
 
         episode = data.traj[ep]
@@ -101,7 +108,7 @@ def evaluate(value_fnc, visualize, num_episodes, data_path=FOLDER+"/static_tests
     
 
         res = evaluate_value_fcn_propagate(value_fnc, s_initial_1, s_initial_2, visualize=visualize)
-        avg_val_diff, avg_vel_diff, avg_extra_time = res
+        avg_val_diff, avg_vel_diff, avg_extra_time, success, collision = res
 
         avg_val_diffs = np.vstack((avg_val_diffs, avg_val_diff))
         avg_vel_diffs = np.vstack((avg_vel_diffs, avg_vel_diff))
