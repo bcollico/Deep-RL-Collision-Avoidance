@@ -8,8 +8,9 @@ from state_definitions import  get_joint_state_vectorized, get_rotated_state
 from rl_utils import get_goal, get_pos, get_vel, get_current_state, get_radius, get_vpref, propagate_dynamics, \
 robots_intersect, close_to_goal, get_heading, fill_vel_heading
 from configs import *
+from visualize_traj import plot_animation
 
-def CADRL(value_model, initial_state_1, initial_state_2, epsilon, episode=0, test=False):
+def CADRL(value_model, initial_state_1, initial_state_2, epsilon, episode=0, test=False, reward_key='original'):
     '''
         Algorithm 1: CADRL (Collision Avoidance with Deep RL)
 
@@ -92,13 +93,32 @@ def CADRL(value_model, initial_state_1, initial_state_2, epsilon, episode=0, tes
         x1_joint_rotated = np.apply_along_axis(get_rotated_state, 1, x1_joint)
         x2_joint_rotated = np.apply_along_axis(get_rotated_state, 1, x2_joint)
 
-        R1 = reward_vectorized(curr_state_1, curr_state_2, A1, dt)
-        R2 = reward_vectorized(curr_state_2, curr_state_1, A2, dt)
+        if reward_key == 'original':
+            R1 = reward_vectorized(curr_state_1, curr_state_2, A1, dt)
+            R2 = reward_vectorized(curr_state_2, curr_state_1, A2, dt)
+        elif reward_key == 'reward_1':
+            R1 = reward_vectorized(curr_state_1, curr_state_2, A1, dt, reward_type=1)
+            R2 = reward_vectorized(curr_state_2, curr_state_1, A2, dt, reward_type=1)
+        elif reward_key == 'reward_2':
+            R1 = reward_vectorized(curr_state_1, curr_state_2, A1, dt, reward_type=2)
+            R2 = reward_vectorized(curr_state_2, curr_state_1, A2, dt, reward_type=2)
 
         lookahead_1 = R1 + gamma_bar_x1 * value_model(x1_joint_rotated)
         lookahead_2 = R2 + gamma_bar_x2 * value_model(x2_joint_rotated)
 
+<<<<<<< HEAD
         
+=======
+        # try:
+        #     assert np.all(value_model(x1_joint_rotated)<1.0)
+        # except:
+        #     import pdb;pdb.set_trace()
+
+        # try:
+        #     assert np.all(value_model(x1_joint_rotated)>=0.0)
+        # except:
+        #     import pdb;pdb.set_trace()
+>>>>>>> e0ad135f9210ad4ac223c868fb5f7beda03486f0
 
         if not test and random.random() < epsilon:
             idx1 = np.random.randint(0, len(A1)-1)
@@ -107,14 +127,12 @@ def CADRL(value_model, initial_state_1, initial_state_2, epsilon, episode=0, tes
             idx1 = np.argmax(lookahead_1)
             opt_action_1 = A1[idx1]
 
-
         if not test and random.random() < epsilon:
             idx2 = np.random.randint(0, len(A2)-1)
             opt_action_2 = A2[idx2]
         else:
             idx2 =  np.argmax(lookahead_2)
             opt_action_2 = A2[idx2]
-
 
         if not done_1:  
             x_1_new = propagate_dynamics(get_current_state(x_1), opt_action_1, dt).reshape(1, -1)
@@ -162,13 +180,13 @@ def CADRL(value_model, initial_state_1, initial_state_2, epsilon, episode=0, tes
     if robots_intersect(x_1, x_2):
         #print('Reached goal but intersected')
         # if True:
-        # if False and episode>=7:
-            # plot_animation(get_goal(x_1),
-            #             get_goal(x_2),
-            #             x_1[:, 0:2],
-            #             x_2[:, 0:2],
-            #             get_radius(x_1),
-            #             get_radius(x_2))
+        # # if False and episode>=7:
+        #     plot_animation(get_goal(x_1),
+        #                 get_goal(x_2),
+        #                 x_1[:, 0:2],
+        #                 x_2[:, 0:2],
+        #                 get_radius(x_1),
+        #                 get_radius(x_2))
 
         R2s.append(R2[idx2])
         x2s_rot.append(x2_joint_rotated[idx2]) 
@@ -190,7 +208,7 @@ def CADRL(value_model, initial_state_1, initial_state_2, epsilon, episode=0, tes
         x1s_rot.append(x1_joint_rotated[idx1])      
         return x_1, x_2, True, np.array(R1s), np.array(R2s), np.array(x1s_rot), np.array(x2s_rot), False
 
-def reward_vectorized(x1, x2, a, dt):
+def reward_vectorized(x1, x2, a, dt, test1=False, test2=False, reward_type=0):
     '''
     Reward function for robot 1 only, given joint state (parametrized by 2 individual states)
     '''
@@ -214,10 +232,17 @@ def reward_vectorized(x1, x2, a, dt):
     R[goal_close] = 1
     dmin_idx      = dmin < 0.2
     R[dmin_idx]   = -0.1 - dmin[dmin_idx]/2
-    # R[dmin_idx]   = -1.0 - dmin[dmin_idx]/2
     dmin_idx_2    = dmin < 0.0
     R[dmin_idx_2] = -0.25
-    # R[dmin_idx_2] = -1.1
+
+    if reward_type == 1:
+        dmin_idx      = dmin < 0.2
+        R[dmin_idx]   = -0.5 - dmin[dmin_idx]/2
+        dmin_idx_2    = dmin < 0.0
+        R[dmin_idx_2] = -0.75
+
+    if reward_type == 2:
+        pass
 
     return R.reshape(-1, 1)
 
