@@ -55,7 +55,7 @@ def plot_traj(s1, s2, dt=0.1):
     for key in states.keys():
         min_traj = np.min([min_traj, len(states[key][0,:])])        
 
-    circle_idx = np.int64((np.linspace(0,min_traj-1,2)))
+    circle_idx = np.int64((np.linspace(0,min_traj,2)))
 
     for key in states.keys():
 
@@ -63,18 +63,18 @@ def plot_traj(s1, s2, dt=0.1):
         i_radius = radius[key]
         i_goal   = goals[key]
 
-        steps_to_goal = np.sum([np.linalg.norm(i_traj[2:4,:], axis=0)>0.05])
-        # steps_to_goal = len(i_traj) - np.sum([np.linalg.norm(i_traj[0:2,:]-i_goal.reshape(-1,1), axis=0)<0.1])
+        # steps_to_goal = np.sum([np.linalg.norm(i_traj[2:4,:], axis=0)>0.01])
+        steps_to_goal = np.sum([np.linalg.norm(i_traj[0:2,:]-i_goal.reshape(-1,1), axis=0)>0.1])-1
 
-        ax.plot(i_traj[0,:steps_to_goal],
-                i_traj[1,:steps_to_goal], 
+        ax.plot(i_traj[0,:steps_to_goal+1],
+                i_traj[1,:steps_to_goal+1], 
                 linestyle='--',
-                color=colors[int(key)], 
+                color=colors[int(key)-1], 
                 label="Robot "+key)
 
         ax.plot(i_goal[0],
                 i_goal[1],
-                color=colors[int(key)],
+                color=colors[int(key)-1],
                  marker='*',
                  markersize=12)
 
@@ -85,17 +85,17 @@ def plot_traj(s1, s2, dt=0.1):
             
             ax.plot(i_radius*circ_points[0,:]+i_traj[0,i],
                     i_radius*circ_points[1,:]+i_traj[1,i],
-                    color=colors[int(key)])
+                    color=colors[int(key)-1])
 
             ax.plot(i_traj[0,i],
                     i_traj[1,i],
-                    color=colors[int(key)],
+                    color=colors[int(key)-1],
                     marker='.')
 
             ax.text(i_traj[0,i]-i_radius/5, 
                     i_traj[1,i]+i_radius/2*(-1)**int(key), 
                     "t={:g}".format(i*dt),
-                    color=colors[int(key)])
+                    color=colors[int(key)-1])
 
     plt.legend()
     plt.show()
