@@ -8,7 +8,6 @@ GAMMA = 0.8
 
 def load_traj_data(folder):
  
-    #data = read_training_data(os.path.join(folder, 'training_data_1000sim.csv'))
     data = read_training_data(os.path.join(folder, 'train_data.csv'))
 
     radius = 1.0

@@ -22,8 +22,7 @@ if __name__ == '__main__':
 
     # algorithm 2 line 4
     value_model = tf.keras.models.load_model(os.path.join(FOLDER, 'initial_value_model'))
-    V_prime = tf.keras.models.clone_model(value_model)
-    V_prime.set_weights(value_model.get_weights())
+    V_prime = tf.keras.models.load_model(os.path.join(FOLDER, 'initial_value_model'))
 
     # algorithm 2 line 5
     # x_dict, y_dict = load_training_test_data(folder)
@@ -49,10 +48,12 @@ if __name__ == '__main__':
         collision_counter = 0
         attempts_counter = 0
 
-        if training_ep < 400:
-            epsilon_greedy = EPS_GREEDY_MIN + (EPS_GREEDY_MAX - EPS_GREEDY_MIN)*(400-training_ep)/400
+        if training_ep < N_EPISODES:
+            epsilon_greedy = EPS_GREEDY_MIN + (EPS_GREEDY_MAX - EPS_GREEDY_MIN)*(N_EPISODES-training_ep)/N_EPISODES
         else:
             epsilon_greedy = EPS_GREEDY_MIN
+
+        print(f'Epsilon greedy probability: {epsilon_greedy}')
 
         while m != M-1:
             attempts_counter += 1
@@ -71,11 +72,19 @@ if __name__ == '__main__':
             s_initial_2 = x_ep_dict[rand_ep][rand_idx_2][0]
 
             # s_1, s_2 are Tx9, 9 being the state dimension
-            _, _, cadrl_successful, Rs1, Rs2, x1s_rot, x2s_rot, collision = CADRL(value_model, 
+            s_1, s_2, cadrl_successful, Rs1, Rs2, x1s_rot, x2s_rot, collision = CADRL(value_model, 
                                                                                   s_initial_1, 
                                                                                   s_initial_2, 
                                                                                   epsilon_greedy, 
                                                                                   episode=training_ep)
+
+            s_1_test, s_2_test, cadrl_successful_test, Rs1_test, Rs2_test, x1s_rot_test, x2s_rot_test, collision_test = CADRL(value_model, 
+                                                                                  s_initial_1, 
+                                                                                  s_initial_2, 
+                                                                                  epsilon_greedy, 
+                                                                                  episode=training_ep,
+                                                                                  reward_key='reward_1')
+
             if collision: 
                 collision_counter +=1 
            
@@ -114,8 +123,6 @@ if __name__ == '__main__':
             # evaluate value model here...
             #res_old = evaluate(value_fnc=V_prime, num_episodes=2, visualize=False)
             #if pass_evaluation(res_new=res_new, res_old=res_old):
-            V_prime = tf.keras.models.clone_model(value_model)
-            V_prime.set_weights(value_model.get_weights())
-
-
+            V_prime.set_weights(value_model.get_weights()) 
+        
     value_model.save(os.path.join(FOLDER, 'post_RL_value_model'))
