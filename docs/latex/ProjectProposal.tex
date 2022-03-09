@@ -81,6 +81,10 @@ Given that the state-of-the-art model-based methods in collision avoidance have 
 % Despite the demonstrated performance of learning-based methods in collision avoidance, there has not been a one-to-one comparison of state-of-the-art methods. For example, the authors in \cite{long2018} mention the work of \cite{chen2017cadrl} in their relevant work, but fail to compare performance to their algorithm, choosing only to test against the state-of-the-art model-based method and a pure supervised-learning approach. The intent of this project is to implement these two learning-based methods for crafting collision avoidance polices and directly comparing them in a common simulation environment.
 
 \subsection{Problem Formulation}
+
+ADD SOME STUFF HERE. MOVE THE REWARD FUNCTION HERE.\\
+
+
 Decentralized, un-communicative collision avoidance will be posed as a partially-observable sequential decision-making problem. The pairwise joint state to be considered by the policy for ego-robot $i$ and neighbor robot $j$ is $\state{ij}{}=\begin{bmatrix} \state{i}{} & \state{j}{o} \end{bmatrix}\inR{14}$ where each robot state is comprised of observable $\state{}{o}$ and hidden $\state{}{h}$ quantities. The observable quantities are position and velocity $\posvec{}, \,  \velvec{} \inR{2}$ and robot body radius $\radius{} \inR{}$, and the hidden quantities are goal position $\posvec{g} \inR{2}$, preferred speed, and heading angle $\vel{pref}, \, \headangle{}\inR{}$.
 
 The considered action space is continuous with a policy $\policy{}(\state{ij}{})=\ctrl{i} \, : \, \mathbb{R}^{14}\mapsto\mathbb{R}^2$. Reasonable bounds will be placed on the commanded control input. Single-integrator dynamic will be used as the baseline model: 
@@ -163,6 +167,10 @@ goal at the preferred speed).
 \end{itemize}
 
 \section{Results}
+
+\subsection{Environment of the problem}
+
+
 
 \section{Conclusion}
 In this paper, we have adapted the method from Chen et. al. \cite{chen2017cadrl}, modifying several parameters and functions. In order to evaluate our method, we compared it to ORCA over 1000 sample trajectories.
