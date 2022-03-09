@@ -63,7 +63,7 @@ Long et. al. \cite{long2018} also formulate the collision avoidance problem as a
 
 While the aforementioned reinforcement learning strategies demonstrated great success, they did not explicitly encode agent cooperation into their learned value networks. Sartoretti et. al. \cite{sartoretti2019} attempt to impart this behavior into decentralized collision avoidance by crafting a reward function that penalizes actions that hinder other agents in the environment. In addition, the authors use a joint reinforcement learning and imitation learning strategy, similar to \cite{chen2017cadrl}, that randomly introduces episodes of ‘expert’ trajectory demonstrations into the learning process. The problem is formulated as a partially observable sequential decision-making problem, where the partial-observability is introduced by limiting the field-of-view that each robot can see in the environment. This work, although promising in terms of scalability and collaborative collision avoidance and trajectory planning, is limited in scope due to its discrete state and action space, whereas the previously surveyed deep reinforcement learning collision avoidance works operated on continuous state and action spaces.
 
-Kahn et. al. \cite{kahn2017} attempt to address the problem of online reinforcement learning for collision avoidance. By recognizing that agents must experience collisions to learn how to avoid them, they formulate an uncertainty-aware reinforcement process that uses a velocity-dependent collision cost function in tandem with uncertainty-aware collision estimates that results in agents navigating uncertain environments, and thereby experiencing collisions, at signficicantly lower speeds than traditional reinforcement learning methods.
+Kahn et. al. \cite{kahn2017} attempt to address the problem of online reinforcement learning for collision avoidance. By recognizing that agents must experience collisions to learn how to avoid them, they formulate an uncertainty-aware reinforcement process that uses a velocity-dependent collision cost function in tandem with uncertainty-aware collision estimates that results in agents navigating uncertain environments, and thereby experiencing collisions, at significantly lower speeds than traditional reinforcement learning methods.
 %%
 
 %% Valentin
@@ -81,9 +81,15 @@ Given that the state-of-the-art model-based methods in collision avoidance have 
 % Despite the demonstrated performance of learning-based methods in collision avoidance, there has not been a one-to-one comparison of state-of-the-art methods. For example, the authors in \cite{long2018} mention the work of \cite{chen2017cadrl} in their relevant work, but fail to compare performance to their algorithm, choosing only to test against the state-of-the-art model-based method and a pure supervised-learning approach. The intent of this project is to implement these two learning-based methods for crafting collision avoidance polices and directly comparing them in a common simulation environment.
 
 \subsection{Problem Formulation}
+
+ADD SOME STUFF HERE. MOVE THE REWARD FUNCTION HERE. TALK ABOUT ROTATION INVARIANCE\\
+
+
 Decentralized, un-communicative collision avoidance will be posed as a partially-observable sequential decision-making problem. The pairwise joint state to be considered by the policy for ego-robot $i$ and neighbor robot $j$ is $\state{ij}{}=\begin{bmatrix} \state{i}{} & \state{j}{o} \end{bmatrix}\inR{14}$ where each robot state is comprised of observable $\state{}{o}$ and hidden $\state{}{h}$ quantities. The observable quantities are position and velocity $\posvec{}, \,  \velvec{} \inR{2}$ and robot body radius $\radius{} \inR{}$, and the hidden quantities are goal position $\posvec{g} \inR{2}$, preferred speed, and heading angle $\vel{pref}, \, \headangle{}\inR{}$.
 
-The considered action space is continuous with a policy $\policy{}(\state{ij}{})=\ctrl{i} \, : \, \mathbb{R}^{14}\mapsto\mathbb{R}^2$. Reasonable bounds will be placed on the commanded control input. Single-integrator dynamic will be used as the baseline model: 
+
+
+The considered action space is continuous with a policy $\policy{}(\state{ij}{})=\ctrl{i} \, : \, \mathbb{R}^{15}\mapsto\mathbb{R}^2$. Reasonable bounds will be placed on the commanded control input. Single-integrator dynamic will be used as the baseline model: 
 \begin{alignat}{3}
 & \state{i}{t+1} & \ = \ & \state{i}{t} + \ctrl{i}{t}\dt = \state{i}{t} + \policy{}(\state{ij}{})\dt \label{eqn:dyn1} \\
 & \state{j}{t+1} & \ = \ &\state{j}{t} + \ctrl{j}{t}\dt = \state{j}{t} + \policy{}(\state{ji}{})\dt \label{eqn:dyn2} 
@@ -146,7 +152,7 @@ the training value. Playing with this penalty term is one of our experiment. We 
 
 
 \subsection{Metrics used}
-In order to evaluate our network, we compare our network with ORCA over 1000 sample trajectories on the following metrics :
+In order to evaluate our network, we compare our network with ORCA over 1,000 sample trajectories on the following metrics :
 
 \begin{itemize}
     \item average time to goal. This time to goal needs to be as low as possible.
@@ -165,6 +171,39 @@ goal at the preferred speed).
 \section{Results}
 
 \subsection{Environment of the problem}
+
+
+
+In order to encourage interaction in training, we have divided the environment in two, and put robot 0 on the left half plane, and robot 1 on the right half plane. For each robot, we created 1,000 randoms initial states on each side of the half plane. The gap between the two initial states distributions can be explained as we constrain the robot not to be colliding at the initial state. The goal states are in the other half plane for each robot, so that there are some possible collisions happening. Note that some trajectories might be collision-free so that robots just go straight towards their goal at their preferred speed. Each trajectory is 100 step-long, and with 2 robots having 1,000 initial states, we get at maximum 200,000 states, but since the algorithm stops when the goal is reached, we often only compute around 100,000 points.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.4\textwidth]{docs/latex/figures/train_states_distribution.png}
+    \caption{Plot of the initial states distribution for 2 robots with 1,000 goals}
+\end{figure}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.4\textwidth]{docs/latex/figures/train_goals_distribution.png}
+    \caption{Plot of the initial goals distribution for 2 robots with 1,000 goals}
+\end{figure}
+
+\begin{figure*}[t]
+    \centering
+    \begin{subfigure}[b]{0.45\textwidth}
+         \centering
+         \includegraphics[width=0.4\textwidth]{docs/latex/figures/heatmap_x_Robot_2.png}
+         \caption{Original Orientation}
+         \label{fig:heatmap_x}
+     \end{subfigure}
+     \hfill
+     \begin{subfigure}[b]{0.45\textwidth}
+         \centering
+         \includegraphics[width=0.4\textwidth]{docs/latex/figures/heatmap_y_Robot_2.png}
+         \caption{Rotated Orientation}
+         \label{fig:heatmap_x}
+     \end{subfigure}
+\end{figure*}
 
 
 \section{Conclusion}
