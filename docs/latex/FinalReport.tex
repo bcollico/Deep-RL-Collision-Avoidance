@@ -87,13 +87,12 @@ ADD SOME STUFF HERE. MOVE THE REWARD FUNCTION HERE. TALK ABOUT ROTATION INVARIAN
 
 Decentralized, un-communicative collision avoidance will be posed as a partially-observable sequential decision-making problem. The pairwise joint state to be considered by the policy for ego-robot $i$ and neighbor robot $j$ is $\state{ij}{}=\begin{bmatrix} \state{i}{} & \state{j}{o} \end{bmatrix}\inR{14}$ where each robot state is comprised of observable $\state{}{o}$ and hidden $\state{}{h}$ quantities. The observable quantities are position and velocity $\posvec{}, \,  \velvec{} \inR{2}$ and robot body radius $\radius{} \inR{}$, and the hidden quantities are goal position $\posvec{g} \inR{2}$, preferred speed, and heading angle $\vel{pref}, \, \headangle{}\inR{}$.
 
-Because the optimal policy should be invariant to any coordinate transformation (rotation and translation), there is some redundancy in the joint state sjn. In order to get rid off this ambiguity, an agent-centric frame is defined, with the origin at the agent’s position, and the x-axis pointing toward the agent’s goal, that is :
-
-An illustration can be found here.
+Because the optimal policy should be invariant to any coordinate transformation (rotation and translation), there is some redundancy in the joint state sjn. In order to get remove rotational ambiguity, an agent-centric frame is defined, with the origin at the agent’s position, and the x-axis pointing toward the agent’s goal, as shown in Fig. \ref{fig:rot_state}.
 \begin{figure}[h!]
     \centering
-    \includegraphics[width=0.5\textwidth]{docs/latex/figures/rotated_state.png}
-    \caption{Illustration of the rotational invariance for the policy}
+    \includegraphics[width=\linewidth]{docs/latex/figures/rotated_state.png}
+    \caption{Visualization of the Rotated State.}
+    \label{fig:rot_state}
 \end{figure}
 
 
@@ -177,25 +176,28 @@ second term is a lower bound of $t_{i,g}$ (to go straight toward
 goal at the preferred speed).
 \end{itemize}
 
-\section{Results}
+\section{Implementation}
 
-\subsection{Environment of the problem}
-
-
-
-In order to encourage interaction in training, we have divided the environment in two, and put robot 0 on the left half plane, and robot 1 on the right half plane. For each robot, we created 1,000 randoms initial states on each side of the half plane. The gap between the two initial states distributions can be explained as we constrain the robot not to be colliding at the initial state. The goal states are in the other half plane for each robot, so that there are some possible collisions happening. Note that some trajectories might be collision-free so that robots just go straight towards their goal at their preferred speed. Each trajectory is 100 step-long, and with 2 robots having 1,000 initial states, we get at maximum 200,000 states, but since the algorithm stops when the goal is reached, we often only compute around 100,000 points.
+\subsection{Value Network Supervised Learning}
+The value network was first trained using supervised learning (SL) with example ORCA trajectories. To encourage interaction in training, ORCA trajectories were generated with two robots starting opposite halves of the plane, with their corresponding goals opposite to them. Figure \ref{fig:training_init} shows this distribution of initial states and goals. As seen in the figure, a buffer was placed ine middle of the plane to ensure that the robots did not start in an overlapping configuration. ORCA trajectories were generated for 1000 random sets of initial states and goals. Note that some trajectories still may not require collision-avoidance such that robots just go straight towards their goal at their preferred speed. Each trajectory is a maximum of 100 time steps long, leading to an upper bound of $(1000 \text{ simulations})\times(100\text{ time steps})\times(2 \text{ robots}) \, = \ m(1000 \text{ training examples})$, but since some trajectories take fewer than 100 time steps to reach goal, the true number of training examples is $\approx108,000$.
 
 \begin{figure}[h!]
+    \vspace{-0.2in}
     \centering
     \includegraphics[width=0.4\textwidth]{docs/latex/figures/train_states_distribution.png}
-    \caption{Plot of the initial states distribution for 2 robots with 1,000 goals}
+    \caption{SL Training Data Initial State Distribution - 1000 Simulations}
 \end{figure}
 
 \begin{figure}[h!]
+    \vspace{-0.2in}
     \centering
     \includegraphics[width=0.4\textwidth]{docs/latex/figures/train_goals_distribution.png}
-    \caption{Plot of the initial goals distribution for 2 robots with 1,000 goals}
+    \caption{SL Training Data Initial Goal Distribution - 1000 Simulations}
 \end{figure}
+
+\section{Results}
+
+The value function attained via SL using example ORCA trajectories can be visualized in a simplified manner using a heatmap in the 2D plane. By holding all variables constant except for the position of one of the robots, the output of the value function can be mapped to Cartesian coordinates. This is exemplified in Fig. \ref{fig:heatmap_rot}, where the position of Robot 1 
 
 \begin{figure*}[t]
     \centering
@@ -210,8 +212,9 @@ In order to encourage interaction in training, we have divided the environment i
          \centering
          \includegraphics[width=\textwidth]{docs/latex/figures/heatmap_y_Robot_2.png}
          \caption{Rotated Orientation.}
-         \label{fig:heatmap_x}
+         \label{fig:heatmap_y}
      \end{subfigure}
+     \label{fig:heatmap_rot}
      \caption{Example of Rotation Invariance of Supervised Learning Value Network Output.}
 \end{figure*}
 
