@@ -12,7 +12,7 @@ from cadrl import CADRL
 def evaluate_value_fcn_propagate(value_fnc, s_initial_1, s_initial_2, visualize):
     
     
-    xs1, xs2, cadrl_successful, Rs1, Rs2, x1s_rot, x2s_rot, collision = CADRL(value_fnc, s_initial_1, s_initial_2, 100)
+    xs1, xs2, cadrl_successful, Rs1, Rs2, x1s_rot, x2s_rot, collision = CADRL(value_fnc, s_initial_1, s_initial_2, 0.0, test=True)
 
     goals = [xs1[0, 5:6],  xs2[0, 5:6]]
 
@@ -31,7 +31,6 @@ def evaluate_value_fcn_propagate(value_fnc, s_initial_1, s_initial_2, visualize)
         i_dg     = np.linalg.norm(xs[:, 0:2]-i_goal, axis=1)
 
 
-        #steps_to_goal = np.sum([np.linalg.norm(xs[:, 2:4], axis=0)>0.05])
         steps_to_goal = len(xs)
         output_value = np.zeros((1,steps_to_goal))
         true_value = np.zeros((1,steps_to_goal))
