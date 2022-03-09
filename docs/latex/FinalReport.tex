@@ -195,9 +195,11 @@ The value network was first trained using supervised learning (SL) with example 
     \caption{SL Training Data Initial Goal Distribution - 1000 Simulations}
 \end{figure}
 
+An example ORCA trajectory from the training dataset is shown in Fig. \ref
+
 \section{Results}
 
-The value function attained via SL using example ORCA trajectories can be visualized in a simplified manner using a heatmap in the 2D plane. By holding all variables constant except for the position of one of the robots, the output of the value function can be mapped to Cartesian coordinates. This is exemplified in Fig. \ref{fig:heatmap_rot}, where the position of Robot 1 
+The value function attained via SL using example ORCA trajectories can be visualized in a simplified manner using a heatmap in the 2D plane. By holding all variables constant except for the position of one of the robots, the output of the value function can be mapped to Cartesian coordinates. This is exemplified in Fig. \ref{fig:heatmap_rot}, where the position and velocity of Robot 1 are held while a stationary Robot 2 is moved around the plane. These two heatmaps show that the value function learned a rotation invariance, as we attain nearly the same value distribution in both Fig. \ref{fig:heatmap_x} and  Fig. \ref{fig:heatmap_y} with a simple $90\degree$ rotation. We may also visualize the resulting value distribution by varying Robot 1's state while holding Robot 2 constant. In Fig. \ref{fig:heatmap_2}, Robot 2 is stationary in the plane, and Robot 1's position is varied while maintaining a velocity vector in the direction of goal. We can compare the SL policy to the RL policy be observing the difference in Fig. \ref{fig:heatmap_21} and Fig. \ref{fig:heatmap_22}. In both cases, however, the trend is the same, the value network predicts that the time-to-goal will be low when Robot 1 is near it's goal, and the time-to-goal will be high when Robot 1 is far from it's goal or impeded by Robot 2. Improvement can be seen in this aspect after RL value network improvement.
 
 \begin{figure*}[t]
     \centering
@@ -214,8 +216,25 @@ The value function attained via SL using example ORCA trajectories can be visual
          \caption{Rotated Orientation.}
          \label{fig:heatmap_y}
      \end{subfigure}
-     \label{fig:heatmap_rot}
-     \caption{Example of Rotation Invariance of Supervised Learning Value Network Output.}
+     \caption{Example of Rotation Invariance of Supervised Learning Value Network Output.}\label{fig:heatmap_rot}
+\end{figure*}
+
+\begin{figure*}[t]
+    \centering
+    \begin{subfigure}[b]{0.49\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{docs/latex/figures/heatmap_2_Robot_1.png}
+         \caption{SL Value Heatmap Varying Robot 1.}
+         \label{fig:heatmap_21}
+     \end{subfigure}
+     \hfill
+     \begin{subfigure}[b]{0.49\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{docs/latex/figures/heatmap_2_Robot_1.png}
+         \caption{RL Value Heatmap Varying Robot 1.}
+         \label{fig:heatmap_22}
+     \end{subfigure}
+     \caption{Comparison of Supervised- and Reinforcement-Learning Value Networks.}\label{fig:heatmap_2}
 \end{figure*}
 
 
