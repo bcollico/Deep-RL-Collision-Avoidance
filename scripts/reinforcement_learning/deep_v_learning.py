@@ -150,8 +150,14 @@ def deep_v_learning(retrain=True):
         if np.mod(training_ep, C) == 0:
             _, _, _, successes, collisions, failures = evaluate(value_fnc=value_model, num_episodes=50, data=test_data, visualize=False)
 
-            V_prime.set_weights(value_model.get_weights()) 
+            #V_prime.set_weights(value_model.get_weights()) 
             value_model.save(os.path.join(FOLDER, 'post_RL_value_model' + reward_string))
+            del V_prime
+            del value_model
+            
+            value_model = tf.keras.models.load_model(os.path.join(FOLDER, 'post_RL_value_model' + reward_string))
+            V_prime = tf.keras.models.load_model(os.path.join(FOLDER, 'post_RL_value_model' + reward_string))
+            
             with open(os.path.join(FOLDER, 'training_ep.txt'), "w") as f:
                 f.write(str(training_ep))
 
