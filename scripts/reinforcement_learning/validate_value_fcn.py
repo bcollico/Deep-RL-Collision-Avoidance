@@ -13,8 +13,9 @@ def evaluate_value_fcn_propagate(value_fnc, s_initial_1, s_initial_2, visualize)
     
     
     xs1, xs2, cadrl_successful, Rs1, Rs2, x1s_rot, x2s_rot, collision = CADRL(value_fnc, s_initial_1, s_initial_2, 0.0, test=True)
-
-    goals = [xs1[0, 5:6],  xs2[0, 5:6]]
+    if not cadrl_successful : 
+        return np.zeros(2), np.zeros(2), np.zeros(2)
+    goals = [xs1[0, 5:7],  xs2[0, 5:7]]
 
     dt = DT
     gamma = GAMMA
@@ -57,13 +58,14 @@ def evaluate_value_fcn_propagate(value_fnc, s_initial_1, s_initial_2, visualize)
 
             s_12 = rotated_states[i][step]
 
-            # print(s_12)
 
             output_value[0,step] = value_fnc(np.array([s_12]))
             true_value[0,step]   = gamma**(tg*i_vpref)
             extra_time[0,step]   = tg - dg/i_vpref
-
-    
+            try:
+                assert(extra_time[0, step] >=0), "negative extra time"
+            except:
+                return
 
         avg_value_diff = np.append(avg_value_diff, np.mean(np.abs(output_value-true_value)))
         avg_vel_diff = np.append(avg_vel_diff, np.mean(i_vpref - np.linalg.norm(xs[:steps_to_goal, 2:4], axis=1)))
