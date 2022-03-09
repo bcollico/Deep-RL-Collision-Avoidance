@@ -48,6 +48,20 @@ def get_state(s_robo1, radius, pgx, pgy, v_pref):
     x[8] = theta
     return x
 
+def angle_diff(a, b):
+    a = a % (2. * np.pi)
+    b = b % (2. * np.pi)
+    diff = a - b
+    if np.size(diff) == 1:
+        if np.abs(a - b) > np.pi:
+            sign = 2. * (diff < 0.) - 1.
+            diff += sign * 2. * np.pi
+    else:
+        idx = np.abs(diff) > np.pi
+        sign = 2. * (diff[idx] < 0.) - 1.
+        diff[idx] += sign * 2. * np.pi
+    return diff
+
 def get_rotated_state(x):
     Pg = x[5:7]
     P = x[:2]
@@ -60,7 +74,9 @@ def get_rotated_state(x):
     ])
     v_p = R@x[2:4]
     theta = x[8]
-    theta_p = theta-alpha
+    theta_p = angle_diff(theta, alpha)
+    # if not np.linalg.norm(theta - alpha - theta_p) < 1e-4:
+    #     import pdb;pdb.set_trace()
     rot = np.zeros(shape=(x.shape[0]+1))
     rot[0] = np.linalg.norm(x[:2]-x[5:7], 2) #d_g
     rot[1] = x[7] #v_pref

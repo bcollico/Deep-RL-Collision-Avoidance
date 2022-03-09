@@ -224,7 +224,7 @@ def reward_vectorized(x1, x2, a, dt, test1=False, test2=False, reward_type=0):
     R[dmin_idx_2] = -0.25
 
     if reward_type == 1:
-        dmin_idx      = dmin < 0.2
+        dmin_idx      = dmin < 0.5
         R[dmin_idx]   = -0.5 - dmin[dmin_idx]/2
         dmin_idx_2    = dmin < 0.0
         R[dmin_idx_2] = -0.75
