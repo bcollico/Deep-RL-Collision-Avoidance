@@ -30,8 +30,8 @@ def evaluate_value_fcn_propagate(value_fnc, s_initial_1, s_initial_2, visualize)
 
         i_dg     = np.linalg.norm(xs[:, 0:2]-i_goal, axis=0)
 
-        steps_to_goal = np.sum([np.linalg.norm(xs[:, 2:4], axis=0)>0.05])
-
+        #steps_to_goal = np.sum([np.linalg.norm(xs[:, 2:4], axis=0)>0.05])
+        steps_to_goal = len(xs)
         output_value = np.zeros((1,steps_to_goal))
         true_value = np.zeros((1,steps_to_goal))
         extra_time = np.zeros((1,steps_to_goal))
