@@ -1,9 +1,7 @@
-from asyncore import read
 import numpy as np
 from read_training_data import read_training_data
 from plot_traj import plot_traj
 from configs import *
-from nn_utils import load_traj_data
 from state_definitions import get_state, get_joint_state, get_rotated_state
 import tensorflow as tf
 import os
@@ -30,13 +28,11 @@ def evaluate_value_fcn_propagate(value_fnc, s_initial_1, s_initial_2, visualize,
 
         i_dg     = np.linalg.norm(xs[:, 0:2]-i_goal, axis=1)
 
-
         steps_to_goal = len(xs)
         output_value = np.zeros((1,steps_to_goal))
         true_value = np.zeros((1,steps_to_goal))
         extra_time = np.zeros((1,steps_to_goal))
 
-        
         for j, xs_other in enumerate([xs1, xs2]):
             if j is not i:
                 j_radius = RADIUS
@@ -80,7 +76,7 @@ def evaluate(value_fnc, visualize, num_episodes, data=None, data_path=FOLDER+"/t
     
     ep_list = range(num_episodes)
     robots_count = data.n_agents
-    dt = data.dt
+    dt = DT
     # ep_list = [50]
     avg_val_diffs = np.zeros((0, robots_count))
     avg_vel_diffs = np.zeros((0, robots_count))

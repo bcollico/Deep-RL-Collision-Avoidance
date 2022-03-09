@@ -9,6 +9,7 @@ from matplotlib import rc
 
 USER = 'Bradley'
 GAMMA = 0.8
+VARIABLE='Robot 2'
 
 if USER == 'Brian':
 	folder  = '/home/bdobkowski/Stanford/AA277/aa277_project/data'
@@ -23,7 +24,7 @@ def value_heatmap(value_fcn):
 
     vpref = np.array([1,1])
     radius = np.array([1,1])
-    goal = np.array([3.0,0.0])
+    goal = np.array([1.5,0.0])
 
     xmax = 5
     xmin = -xmax
@@ -38,19 +39,25 @@ def value_heatmap(value_fcn):
     xrange_plot = np.arange(xmin,xmax+step,step=step)
     yrange_plot = np.arange(ymin,ymax+step,step=step)
 
-    ego_x = -3
-    ego_y = 0
-    ego_vx = vpref[0]
+    ego_x = -2
+    ego_y = 2
+    ego_vx = 0
     ego_vy = 0
     ego_state = np.array([ego_x, ego_y,  ego_vx,  ego_vy])
     r2_state  = np.array([0    , 0    , 0, 0])
 
     pos_map = product(xrange, yrange)
 
-    s1 = get_state(ego_state  , radius[0], goal[0], goal[1], vpref[0])
-    s2 = get_state(r2_state   , radius[1], None   , None   , vpref[1])
-
-    output_value = np.array(list(map(lambda x: map_fcn(x, value_fcn, s1, s2), pos_map)))
+    if VARIABLE=='Robot 2':
+        s1 = get_state(ego_state  , radius[0], goal[0], goal[1], vpref[0])
+        s2 = get_state(r2_state   , radius[1], None   , None   , vpref[1])
+        output_value = np.array(list(map(lambda x: map_fcn(x, value_fcn, s1, s2), pos_map)))
+        other = 'Robot 1'
+    elif VARIABLE=='Robot 1':
+        s1 = get_state(ego_state  , radius[0], goal[0], goal[1], vpref[0])
+        s2 = get_state(ego_state  , radius[1], None   , None   , vpref[1])
+        output_value = np.array(list(map(lambda x: map_fcn(x, value_fcn, s1, s2), pos_map)))
+        other = 'Robot 2'
     # distance     = np.array(list(map(lambda x: np.linalg.norm([x[0][0]-x[1][0], x[0][1]-x[1][1]]), pos_map)))
     # rel_angle    = np.array(list(map(lambda x: np.arctan2(x[0][0]-x[1][0], x[0][1]-x[1][1]), pos_map)))
     # angle_to_goal= np.array(list(map(lambda x: np.arctan2(goal[0][0]-x[1][0], x[0][1]-x[1][1]), pos_map)))
@@ -85,7 +92,7 @@ def value_heatmap(value_fcn):
             ego_y,
             color='k',
             marker='.',
-            label='Robot 1')
+            label=other)
 
     ax.plot(goal[0],
             goal[1],
@@ -108,8 +115,8 @@ def value_heatmap(value_fcn):
     # rc('text',usetex=True)
     ax.set_aspect(1)
     ax.set_title('Value Network Output', fontsize=16)
-    ax.set_xlabel('Robot 2 X Position', fontsize=16)
-    ax.set_ylabel('Robot 2 Y Position', fontsize=16)
+    ax.set_xlabel(VARIABLE+' X Position', fontsize=16)
+    ax.set_ylabel(VARIABLE+' Y Position', fontsize=16)
 
     ax.axis([xmin, xmax, ymin, ymax])
 
@@ -119,11 +126,17 @@ def value_heatmap(value_fcn):
 
 def map_fcn(x, value_fcn, s1, s2):
 
-    # print(pair)s
+    if VARIABLE == 'Robot 2':
+        s2[0] = x[0]
+        s2[1] = x[1]
+    elif VARIABLE == 'Robot 1':
+        s1[0] = x[0]
+        s1[1] = x[1]
+        theta = np.arctan2(s1[6]-s1[1], s1[5]-s1[0])
+        s1[2] = np.cos(theta)
+        s1[3] = np.sin(theta)
 
-    s2[0] = x[0]
-    s2[1] = x[1]
-
+    # print(get_joint_state(s1,s2))
     return value_fcn(get_rotated_state(get_joint_state(s1,s2)).reshape(1,-1))
 
 

@@ -1,6 +1,6 @@
 import numpy as np
-
-from model import get_rotated_state
+import matplotlib.pyplot as plt
+from state_definitions import get_rotated_state
 
 class State:
     def __init__(self,x):
@@ -43,11 +43,53 @@ def rotate_their( x, kinematic = True):
     vy1 = state.vy1 * np.cos(rot) - state.vx1 * np.sin(rot)
     px1 = (state.px1 - state.px) * np.cos(rot) + (state.py1 - state.py) * np.sin(rot)
     py1 = (state.py1 - state.py) * np.cos(rot) - (state.px1 - state.px) * np.sin(rot)
+    pgx = (state.pgx - state.px) * np.cos(rot) + (state.pgy - state.py) * np.sin(rot)
+    pgy = (state.pgy - state.py) * np.cos(rot) - (state.pgx - state.px) * np.sin(rot)
     radius1 = state.radius1
     radius_sum = radius + radius1
     cos_theta = np.cos(theta)
     sin_theta = np.sin(theta)
     da = np.linalg.norm(np.array([state.px - state.px1, state.py - state.py1]))
+
+    ax = plt.subplot(1,2,1)
+    ax1 = plt.subplot(1,2,2)
+
+    ax.set_title('Original State', fontsize=16)
+    ax.set_xlabel('X Position', fontsize=16)
+    ax.set_ylabel('Y Position', fontsize=16)
+    ax.grid(1)
+    ax.plot([state.px,state.px1],[state.py,state.py1],color='k',linewidth=0.75,linestyle='--',label='Rel Pos')
+    ax.plot(state.px, state.py,color='b',label='Robot 1',marker='.',markersize=12,linestyle='none')
+    ax.quiver(state.px, state.py, state.vx, state.vy,color='b',angles='xy', scale_units='xy', scale=1)
+    ax.plot(state.px1, state.py1,color='g',label='Robot 2',marker='.',markersize=12,linestyle='none')
+    ax.quiver(state.px1, state.py1, state.vx1, state.vy1,color='g',angles='xy', scale_units='xy', scale=1)
+    ax.plot(state.pgx, state.pgy,color='b',marker='*',markersize=12, label='Goal 1',linestyle='none')
+    ax.quiver(state.px, state.py, np.cos(rot), np.sin(rot), color='k',angles='xy', scale_units='xy', scale=1)
+    ax.quiver(state.px, state.py, -np.sin(rot), np.cos(rot), color='k',angles='xy', scale_units='xy', scale=1)
+    ax.text((state.px+np.cos(rot))*1.05, (state.py+np.sin(rot))*1.05, 'x')
+    ax.text((state.px-np.sin(rot))*1.05, (state.py+np.cos(rot))*1.05, 'y')
+    ax.axis([-2,2,-2,2])
+    ax.set_aspect(1)
+    ax.legend()
+
+    ax1.set_title('Rotated State', fontsize=16)
+    ax1.set_xlabel('X Position', fontsize=16)
+    ax1.set_ylabel('Y Position', fontsize=16)
+    ax1.grid(1)
+    ax1.plot([0,px1],[0,py1],color='k',linewidth=0.75,linestyle='--',label='Rel Pos')
+    ax1.plot(0, 0,color='b',label='Robot 1',marker='.',markersize=12,linestyle='none')
+    ax1.quiver(0, 0, vx, vy,color='b',angles='xy', scale_units='xy', scale=1)
+    ax1.plot(px1, py1, color='g',label='Robot 2',marker='.',markersize=12,linestyle='none')
+    ax1.quiver(px1, py1, vx1, vy1,color='g',angles='xy', scale_units='xy', scale=1)
+    ax1.plot(pgx, pgy,color='b',marker='*',markersize=12, label='Goal 1',linestyle='none')
+    ax1.quiver(0, 0, 1, 0, color='k',angles='xy', scale_units='xy', scale=1)
+    ax1.quiver(0, 0, 0, 1, color='k',angles='xy', scale_units='xy', scale=1)
+    ax1.text(1.05, -0.05, 'x')
+    ax1.text(-0.05, 1.05, 'y')
+    ax1.axis([-2,2,-2,2])
+    ax1.set_aspect(1)
+    ax1.legend()
+    plt.show()
 
     new_state = np.array([dg, v_pref, vx, vy, radius, theta, vx1, vy1, px1, py1,
                                 radius1, radius_sum, cos_theta, sin_theta, da])
