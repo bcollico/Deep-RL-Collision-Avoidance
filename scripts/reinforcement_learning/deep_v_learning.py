@@ -47,6 +47,12 @@ if __name__ == '__main__':
         m = 0
         collision_counter = 0
         attempts_counter = 0
+
+        if training_ep < 400:
+            epsilon_greedy = EPS_GREEDY_MIN + (EPS_GREEDY_MAX - EPS_GREEDY_MIN)*(400-training_ep)/400
+        else:
+            epsilon_greedy = EPS_GREEDY_MIN
+
         while m != M-1:
             attempts_counter += 1
             rand_ep = np.random.randint(0, high=len(x_ep_dict.keys()))
@@ -65,7 +71,7 @@ if __name__ == '__main__':
             _, _, cadrl_successful, Rs1, Rs2, x1s_rot, x2s_rot, collision = CADRL(value_model, 
                                                                                   s_initial_1, 
                                                                                   s_initial_2, 
-                                                                                  EPS_GREEDY, 
+                                                                                  epsilon_greedy, 
                                                                                   episode=training_ep)
             if collision: 
                 collision_counter +=1 
