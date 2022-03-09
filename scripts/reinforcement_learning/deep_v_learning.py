@@ -111,6 +111,7 @@ if __name__ == '__main__':
         res_new = evaluate(value_fnc=value_model, num_episodes=50,  visualize=False)
 
         if np.mod(training_ep, C) == 0:
+            evaluate(value_fnc=value_model, num_episodes=2,  visualize=True)
             # evaluate value model here...
             #res_old = evaluate(value_fnc=V_prime, num_episodes=2, visualize=False)
             #if pass_evaluation(res_new=res_new, res_old=res_old):

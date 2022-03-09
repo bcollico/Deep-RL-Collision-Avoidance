@@ -148,8 +148,8 @@ if __name__=='__main__':
     initial_value_fnc = tf.keras.models.load_model(initial_model_path)
     post_rl_fnc = tf.keras.models.load_model(post_rl_model_path)
 
-    print("Initial value model evaluation")
-    evaluate(value_fnc=initial_value_fnc, visualize=False, num_episodes=100)
+    #print("Initial value model evaluation")
+    #evaluate(value_fnc=initial_value_fnc, visualize=False, num_episodes=100)
     print("Post RL value model evaluation")
-    evaluate(value_fnc=post_rl_fnc, visualize=False, num_episodes=100,  data_path=data_path)
+    evaluate(value_fnc=post_rl_fnc, visualize=False, num_episodes=50,  data_path=data_path)
     
