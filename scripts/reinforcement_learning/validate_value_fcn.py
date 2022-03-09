@@ -9,18 +9,14 @@ import tensorflow as tf
 import os
 from cadrl import CADRL
 
-def evaluate_value_fcn_propagate(value_fnc, s_initial_1, s_initial_2, visualize):
-    
+def evaluate_value_fcn_propagate(value_fnc, s_initial_1, s_initial_2, visualize, dt=DT):
     
     xs1, xs2, cadrl_successful, Rs1, Rs2, x1s_rot, x2s_rot, collision = CADRL(value_fnc, s_initial_1, s_initial_2, 0.0, test=True)
-    
-    
     
     if not cadrl_successful : 
         return np.zeros(2), np.zeros(2), np.zeros(2), cadrl_successful, collision
     goals = [xs1[0, 5:7],  xs2[0, 5:7]]
 
-    dt = DT
     gamma = GAMMA
     rotated_states = [x1s_rot, x2s_rot]
     avg_value_diff = np.array([])
@@ -57,10 +53,7 @@ def evaluate_value_fcn_propagate(value_fnc, s_initial_1, s_initial_2, visualize)
             t       = step*dt
             tg      = (steps_to_goal-step)*dt
 
-
-
             s_12 = rotated_states[i][step]
-
 
             output_value[0,step] = value_fnc(np.array([s_12]))
             true_value[0,step]   = gamma**(tg*i_vpref)
@@ -78,17 +71,16 @@ def evaluate_value_fcn_propagate(value_fnc, s_initial_1, s_initial_2, visualize)
     #print("Average Velocity Difference from Pref: ", avg_vel_diff)
     #print("Average Extra Time from Ideal Path: ", avg_extra_time)
     if visualize:
-        pass
-        #plot_traj(, goals, radius)
+        plot_traj(xs1, xs2, dt=dt)
     return avg_value_diff, avg_vel_diff, avg_extra_time, cadrl_successful, collision
 
-def evaluate(value_fnc, visualize, num_episodes, data_path=FOLDER+"/training_data_100sim.csv"):
-    data = read_training_data(data_path)
-
-
-
+def evaluate(value_fnc, visualize, num_episodes, data=None, data_path=FOLDER+"/training_data_100sim.csv"):
+    if data is None:
+        data = read_training_data(data_path)
+    
     ep_list = range(num_episodes)
     robots_count = data.n_agents
+    dt = data.dt
     # ep_list = [50]
     avg_val_diffs = np.zeros((0, robots_count))
     avg_vel_diffs = np.zeros((0, robots_count))
@@ -108,7 +100,7 @@ def evaluate(value_fnc, visualize, num_episodes, data_path=FOLDER+"/training_dat
         s_initial_2 = get_state(s_robo2, RADIUS, episode.Pg[1][0], episode.Pg[1][1], episode.Vmax[1])
     
 
-        res = evaluate_value_fcn_propagate(value_fnc, s_initial_1, s_initial_2, visualize=visualize)
+        res = evaluate_value_fcn_propagate(value_fnc, s_initial_1, s_initial_2, visualize=visualize, dt=dt)
         avg_val_diff, avg_vel_diff, avg_extra_time, success, collision = res
 
         if success:
@@ -138,18 +130,19 @@ def pass_evaluation(res_new, res_old):
     return np.all(mean_val_new<=mean_val_old)
     
 
-
 if __name__=='__main__':
     # path = folder+"/training_data_100sim.csv"
     initial_model_path = FOLDER+"/initial_value_model/"
     post_rl_model_path = FOLDER+"/post_RL_value_model/"
-    data_path  = FOLDER+"/training_data_100sim.csv"
+    data_path  = FOLDER+"/test_data.csv"
 
-    initial_value_fnc = tf.keras.models.load_model(initial_model_path)
+    data = read_training_data(data_path)
+
+    # initial_value_fnc = tf.keras.models.load_model(initial_model_path)
     post_rl_fnc = tf.keras.models.load_model(post_rl_model_path)
 
-    print("Initial value model evaluation")
-    evaluate(value_fnc=initial_value_fnc, visualize=False, num_episodes=100)
+    # print("Initial value model evaluation")
+    # evaluate(value_fnc=initial_value_fnc, visualize=True, num_episodes=100, data=data, data_path=None)
     print("Post RL value model evaluation")
-    evaluate(value_fnc=post_rl_fnc, visualize=False, num_episodes=100,  data_path=data_path)
+    evaluate(value_fnc=post_rl_fnc, visualize=True, num_episodes=100,  data=data, data_path=None)
     
