@@ -84,18 +84,17 @@ def nn_training(model_folder, epochs=1000, x_dict=None, y_dict=None, retrain=Tru
     x_train, y_train, x_test, y_test = load_nn_data(x_dict, y_dict)
     
     model = train_model(model, x_train, y_train, epochs=epochs)
-    results = model.evaluate(x_test, y_test, batch_size=128)
-    print(results)
+    #results = model.evaluate(x_test, y_test, batch_size=128)
+    #print(results)
 
     model.save(os.path.join(model_folder, 'initial_value_model'))
 
 def backprop(model, xs, ys, epochs, verbose=1):
-    print("verbosity", verbose)
     train_model(model, xs, ys, epochs=epochs,verbose=verbose)
 
 if __name__ == '__main__':
     x_dict, v_pref, dt = load_traj_data(FOLDER)
-    x_dict_rotated, y_dict = get_nn_input(x_dict, v_pref, dt)
+    x_dict_rotated, y_dict = get_nn_input(x_dict, dt, v_pref)
     print("Test data loaded")
-    nn_training(FOLDER, x_dict=x_dict_rotated, y_dict=y_dict, epochs=1000)
+    nn_training(FOLDER, x_dict=x_dict_rotated, y_dict=y_dict, epochs=250)
 

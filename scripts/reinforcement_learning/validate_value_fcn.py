@@ -82,7 +82,7 @@ def evaluate_value_fcn_propagate(value_fnc, s_initial_1, s_initial_2, visualize)
         #plot_traj(, goals, radius)
     return avg_value_diff, avg_vel_diff, avg_extra_time, cadrl_successful, collision
 
-def evaluate(value_fnc, visualize, num_episodes, data_path=FOLDER+"/static_tests.csv"):
+def evaluate(value_fnc, visualize, num_episodes, data_path=FOLDER+"/training_data_100sim.csv"):
     data = read_training_data(data_path)
 
 
@@ -97,7 +97,8 @@ def evaluate(value_fnc, visualize, num_episodes, data_path=FOLDER+"/static_tests
     successes = 0
     collisions = 0
     failures = 0
-    for ep in ep_list:
+
+    for ep in ep_list[:num_episodes]:
 
         episode = data.traj[ep]
         s_robo1 = episode.X[0][0,0:4].T
@@ -110,16 +111,24 @@ def evaluate(value_fnc, visualize, num_episodes, data_path=FOLDER+"/static_tests
         res = evaluate_value_fcn_propagate(value_fnc, s_initial_1, s_initial_2, visualize=visualize)
         avg_val_diff, avg_vel_diff, avg_extra_time, success, collision = res
 
-        avg_val_diffs = np.vstack((avg_val_diffs, avg_val_diff))
-        avg_vel_diffs = np.vstack((avg_vel_diffs, avg_vel_diff))
-        avg_extra_times = np.vstack((avg_extra_times, avg_extra_time))
+        if success:
+            successes+=1
+        
+            avg_val_diffs = np.vstack((avg_val_diffs, avg_val_diff))
+            avg_vel_diffs = np.vstack((avg_vel_diffs, avg_vel_diff))
+            avg_extra_times = np.vstack((avg_extra_times, avg_extra_time))
+        elif collision:
+            collisions+=1
+        else:
+            failures+=1
     mean_val =  np.mean(avg_val_diffs, axis=0 )
     mean_vel = np.mean(avg_vel_diffs, axis=0 )
     mean_extra_time = np.mean(avg_extra_times, axis=0 )
+    print(f"Successes: {successes}, Collisions: {collisions}, failures: {failures}")
     print("Val diff:", mean_val)
     print("Vel diff:", mean_vel)
     print("Extra time", mean_extra_time)
-    return mean_val, mean_vel, mean_extra_time
+    return mean_val, mean_vel, mean_extra_time, successes, collisions, failures
 
 
 def pass_evaluation(res_new, res_old):
@@ -134,13 +143,13 @@ if __name__=='__main__':
     # path = folder+"/training_data_100sim.csv"
     initial_model_path = FOLDER+"/initial_value_model/"
     post_rl_model_path = FOLDER+"/post_RL_value_model/"
-    data_path  = FOLDER+"/test_data.csv"
+    data_path  = FOLDER+"/training_data_100sim.csv"
 
     initial_value_fnc = tf.keras.models.load_model(initial_model_path)
     post_rl_fnc = tf.keras.models.load_model(post_rl_model_path)
 
     print("Initial value model evaluation")
-    evaluate(value_fnc=initial_value_fnc, visualize=False, num_episodes=100,  data_path=data_path)
+    evaluate(value_fnc=initial_value_fnc, visualize=False, num_episodes=100)
     print("Post RL value model evaluation")
     evaluate(value_fnc=post_rl_fnc, visualize=False, num_episodes=100,  data_path=data_path)
     
