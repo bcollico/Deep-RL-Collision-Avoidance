@@ -1,6 +1,8 @@
 \documentclass[conference]{IEEEtran}
 \include{docs/latex/commands}
-
+\usepackage{todonotes}
+\pagenumbering{arabic}
+\pagestyle{plain}
 \begin{document}
 
 \title{AA277: Collision Avoidance Final Project\\
@@ -26,13 +28,15 @@ bdobkows@stanford.edu}
 \and
 \IEEEauthorblockN{Torstein Eliassen}
 \IEEEauthorblockA{\textit{Dept. of Electrical Engineering} \\
-\textit{Stanford University)}\\
+\textit{Stanford University}\\
 torsteoe@stanford.edu}}
 
 \maketitle
-
 \begin{abstract}
-Collision avoidance strategies traditionally leveraged model-based algorithms with many tunable parameters. Recent advances in reinforcement learning have allowed for learning-based methods to surpass the state-of-the-art model-based collision avoidance algorithms. This project proposal details how a foundational learning-based method for collision avoidance will be implemented and tested in previously unseen scenarios to characterize the performance of a learned policy in adversarial conditions.
+Multi-robot systems have been widely applied to perform a given task collaboratively and cooperatively. A major challenge for these systems is to avoid collision, either between robots, or with other agents (e.g. human) as well as its environment.
+Collision avoidance strategies traditionally leverage model-based algorithms with many tunable parameters. Recent advances in reinforcement learning have allowed for learning-based methods to supplement the state-of-the-art model-based collision avoidance algorithms. This work presents a decentralized multiagent collision avoidance algorithm based on deep reinforcement learning, which learns from a method-based algorithm named Optimal Reciprocal Collision Avoidance (ORCA).
+Specifically, the proposed approach develops a value network that encodes the estimated time to the goal given an agent’s joint configuration (positions and velocities) with its neighbor, as a 2 agents system is considered for simplicity. This value network can then be used in one-step lookahead for policy generation.
+The value of different parameters, functions, have been changed to see how the reinforcement learning algorithm reacts.
 \end{abstract}
 \section{Introduction}
 Collision avoidance is a principle problem in mutlt-robot control. Many pathplanning methods in literature make broad assumptions about information sharing and connection to a centralized planner to ensure collision-free paths; however, such a system becomes unwieldy and unrealistic when dealing with many agents. Thus, the subject of interest for this project proposal is decentralized collision avoidance, in which multiple agents plan safe trajectories without communication with neighoring agents. The literature can be divided between model-based and learning-based approaches to collision avoidance, both of which will be surveyed here.
@@ -151,47 +155,55 @@ Currently, the reward function is :
         0 & \mbox{otherwise }\\
     \end{array}
 \right. 
+\label{eqn:reward1}
 \end{equation}
+
+
 where $d_{min}$ is the minimum separation distance between
 the two agents within a duration of $\Delta t$,
 We will change the penalty and reward values, as well as the value of $d_{min}$.\\
-
-In our algorithm, cooperation is encouraged by adding a penalty term based on a comparison of the
-two agents’ extra time to reach the goal,
+The updated reward function is given below
+\begin{equation} 
+\Reward{}(\state{ij}{}, \, \textbf{a})=
+\left\{
+    \begin{array}{ll}
+        -0.75 & \mbox{if } d_{min}<0  \\
+        -0.5 - d_{min}/2 & \mbox{else if } d_{min}<0.5\\
+        1 & \mbox{else if }  \textbf{p}=p_{g} \\
+        0 & \mbox{otherwise }\\
+    \end{array}
+\right. 
+\label{eqn:reward2}
+\end{equation}
+These reward functions will be later referred to as "reward function 0" and "reward function 1". 
+As in the original algorithm, cooperation is encouraged by adding a penalty term based on a comparison of the two agents’ extra time to reach the goal,
 \begin{equation} 
 t_{e} = t_{g}- \frac{d_{g}}{v_{pref}} 
 \end{equation}
-If $t_{e} < e_{l}$ and $t_{e} > e_{u}$, which corresponds to a scenario
-where the agent reached its goal quickly but the other agent
-took a long time, an penalty of 0.1 would be subtracted from
-the training value. Playing with this penalty term is one of our experiment. We are basically tuning the aggressiveness of our agent, as a penalty closer to 0 makes it less cooperative.
+If $t_{e} < e_{l}$ and $t_{e} > e_{u}$, one agent reached its goal quickly, while the other agent took a long time. In this case a penalty of 0.1 will be subtracted from
+the training value. 
 
-\subsection{Metrics}
-In order to evaluate our network, we compare our network with ORCA over 1,000 sample trajectories on the following metrics :
+\subsection{Evaluation}
+
+In order to evaluate the inverse reinforcement learning step, the value function is visualized through a series of heatmaps. The value function is evaluated on its interpretability. 
+
+In order to evaluate our policy, throughout training we pick initial states and propagate our state greedily using one step lookahead with our reward and value function. We do this until we have 10 successful runs and look at the total number of trajectories that are
 
 \begin{itemize}
-    \item average time to goal. This time to goal needs to be as low as possible.
-    \item percentage of collision-free trajectories. We expect our network to have less collision-free trajectories than ORCA.
-    \item average velocity. This velocity should be as close as possible to the preferred velocity.
-    \item minimum separation $d_{min}$. 
-    \item extra-time to goal : we want to have the same extra time spent to reach goals for both agents, showing that they cooperate equally. This extra time is the time added compared to going straight toward goal at the preferred speed for each robot.
-    \begin{equation}
-\overline{t}_{e}=\sum_{i=1}^n (t_{i,g}-\frac{\|  \textbf{p}_{i,0}-\textbf{p}_{i,g}\|}{v})
-\end{equation}
-where $t_{i,g}$ is the \textit{i}th agent’s time to reach its goal, and the
-second term is a lower bound of $t_{i,g}$ (to go straight toward
-goal at the preferred speed).
+    \item Collision-leading
+    \item Slow to reach goal: $>25$ timesteps
 \end{itemize}
+We evaluate over 100 trajectories at the end. 
 
+We also do a qualitative analysis of the trajectories, which involves plotting trajectories and analyzing the smoothness of the resulting trajectories.
 \section{Implementation}
 
 \subsection{Value Network Supervised Learning}
-The value network was first trained using supervised learning (SL) with example ORCA trajectories. To encourage interaction in training, ORCA trajectories were generated with two robots starting opposite halves of the plane, with their corresponding goals opposite to them. Figure \ref{fig:training_init} shows this distribution of initial states and goals. As seen in the figure, a buffer was placed ine middle of the plane to ensure that the robots did not start in an overlapping configuration. ORCA trajectories were generated for 1000 random sets of initial states and goals. Note that some trajectories still may not require collision-avoidance such that robots just go straight towards their goal at their preferred speed.
+The value network was first trained using supervised learning (SL) with example ORCA trajectories. To encourage interaction in training, ORCA trajectories were generated with two robots starting opposite halves of the plane, with their corresponding goals opposite to them. Figure \ref{fig:training_init} shows this distribution of initial states and goals. As seen in the figure, a buffer was placed in the middle of the plane to ensure that the robots did not start in an overlapping configuration. ORCA trajectories were generated for 1000 random sets of initial states and goals. Note that some trajectories still may not require a collision-avoidance technique (e.g. if the robots do not cross each others' path en route to goal).
 
-The value network is not trained on full trajectories, rather, each example is a rotated joint state and is dependent on order (i.e. $\state{12}{}\neq\state{21}{}$). Each trajectory is a maximum of 100 time steps long, leading to an upper bound of $(1000 \text{ simulations})\times(100\text{ time steps})\times(2 \text{ robots}) \, = \ (200,000 \text{ training examples})$, but since some trajectories take fewer than 100 time steps to reach goal, the true number of training examples is $\approx108,000$.
+The value network is not trained on full trajectories, rather, each example is a rotated joint state and relies on order (i.e. $\state{12}{}\neq\state{21}{}$). Each trajectory is a maximum of 100 time steps long, leading to an upper bound of $(1000 \text{ simulations})\times(100\text{ time steps})\times(2 \text{ robots}) \, = \ (200,000 \text{ training examples})$, but since some trajectories take fewer than 100 time steps to reach goal, the true number of training examples is $\approx108,000$.
 
 \begin{figure}[h!]
-    \vspace{-0.2in}
     \centering
     \includegraphics[width=0.9\linewidth]{docs/latex/figures/training_data_distribution.png}
     \caption{SL Training Data Initial State and Goal Distribution - 1000 Simulations}
@@ -206,6 +218,8 @@ The value network is not trained on full trajectories, rather, each example is a
 % \end{figure}
 
 The purpose of the training process is to encode a function that predicts $\discount{}^{t_g\cdot\vel{pref}}$ given $\state{ij}{}$, so the truth value for each state given an ORCA trajectory is computed as $y(\state{ij}{t}, \, t)=\discount{}^{(t_{f}-t)\cdot\vel{pref}}$ for each step along a trajectory. An example ORCA trajectory from the training dataset is shown in Fig. \ref{fig:ORCA}.
+
+This step can be viewed as an inverse reinforcement learning step, a value network is being trained which will eventually influence the selection of robot actions.
 \begin{figure}[h!]
     \centering
     \includegraphics[width=0.9\linewidth]{docs/latex/figures/ORCA_Example_1.png}
@@ -214,18 +228,23 @@ The purpose of the training process is to encode a function that predicts $\disc
 \end{figure}
 
 \subsection{Value Network Reinforcement Learning}
-The value network was improved via reinforcement learning by selecting random episodes from the training dataset and using $\epsilon$-greedy exploration to generate trajectories. This process involves selecting a random action at each timestep with probability $\epsilon$ and using a one-step lookahead (Eq.~\ref{eqn:lookahead}) to select the best available action otherwise. To expedite the lookahead process, the action space was limited to a subset of 25 evenly-spaced actions near the current heading direction and 10 random actions. The restricted action space is shown in Fig. \ref{fig:actionspace}
+The value network was improved via reinforcement learning by selecting random episodes from the training dataset and using $\epsilon$-greedy exploration to generate trajectories for the two robots moving past each other. This process involves selecting a random action for each robot at each timestep with probability $\epsilon$ and using a one-step lookahead (Eq.~\ref{eqn:lookahead}) to select the best available action otherwise. The $\epsilon$ probability parameter was decremented linearly from $0.5$ to $0.1$ for the first 400 RL training episodes, and then remained $0.1$ thereafter. To expedite the lookahead process and emulate a kinematically-constrained robot, the action space was limited to a subset of 25 evenly-spaced actions near the current heading direction and 25 random actions also in this neighborhood. The restricted action space is shown in Fig. \ref{fig:actionspace}, where the $\headangle{}\pm\frac{\pi}{6}$ cone and 5 velocity magnitude scales can be seen for an agent at the origin with $\vel{pref}=1$.
 
 \begin{figure}[h!]
     \centering
-    \includegraphics[width=0.9\linewidth]{example-image-a}
+    \includegraphics[width=0.9\linewidth]{docs/latex/figures/action_space.PNG}
     \caption{Action Space for Lookahead}
     \label{fig:actionspace}
 \end{figure}
+
+Given the simulated trajectories using the value function, the successful (collision-avoiding and goal-reaching) trajectories were used to create state-value pairs (labels for training the network). To do this, the rewards during the reinforcement learning simulation were used in a greedy one-step lookahead function with the current value model. The resulting state-value pairs were assimilated into the dataset, meaning the corresponding ORCA trajectories were replaced with the simulated trajectories. The effect was to include randomness and exploration of the state space early in the training process. As training continued, the dataset became more dominated by simulated trajectories from the trained value function, which would help the network converge to an optimal solution.
+
+The action space generation and reward function implementations were vectorized in order to reduce computational burden during training.
+
 \section{Results}
 
 The value function attained via SL using example ORCA trajectories can be visualized in a simplified manner using a heatmap in the 2D plane. By holding all variables constant except for the position of one of the robots, the output of the value function can be mapped to Cartesian coordinates. This is exemplified in Fig. \ref{fig:heatmap_rot}, where the position and velocity of Robot 1 are held constant while Robot 2 is moved around the plane. These two heatmaps show that the value function learned a rotation invariance, as we attain nearly the same value distribution in both Fig. \ref{fig:heatmap_x} and  Fig. \ref{fig:heatmap_y} with a simple $90\degree$ rotation. We may also visualize the resulting value distribution by varying Robot 1's state while holding Robot 2 constant. In Fig. \ref{fig:heatmap_2}, Robot 2 is stationary in the plane, and Robot 1's position is varied while maintaining a velocity vector in the direction of goal. We can compare the SL policy to the RL policy be observing the difference in Fig. \ref{fig:heatmap_21} and Fig. \ref{fig:heatmap_22}. In both cases, however, the trend is the same, the value network predicts that the time-to-goal will be low when Robot 1 is near it's goal, and the time-to-goal will be high when Robot 1 is far from it's goal or impeded by Robot 2. Improvement can be seen in this aspect after RL value network improvement.
-
+In fact the contrasts are much higher in the post RL heatmap, indicating that the network is more confident. 
 \begin{figure*}[t]
     \centering
     \begin{subfigure}[b]{0.49\textwidth}
@@ -255,16 +274,70 @@ The value function attained via SL using example ORCA trajectories can be visual
      \hfill
      \begin{subfigure}[b]{0.49\textwidth}
          \centering
-         \includegraphics[width=\textwidth]{docs/latex/figures/heatmap_2_Robot_1.png}
+         \includegraphics[width=\textwidth]{docs/latex/figures/heatmap_rl_robot1.png}
          \caption{RL Value Heatmap Varying Robot 1.}
          \label{fig:heatmap_22}
      \end{subfigure}
      \caption{Comparison of Supervised- and Reinforcement-Learning Value Networks.}\label{fig:heatmap_2}
 \end{figure*}
 
+We compare results from our two reward functions. Figures \ref{fig:rew_0_coll} and \ref{fig:rew_1_coll} show that collisions decrease rapidly in both cases and then decrease rather slowly, but steadily. It can be seen in these figures that there is a tradeoff between the number of colliding runs and the number of successful (or time-efficient) runs. Figure \ref{fig:rew_1_coll}, showing perfor  \ref{eqn:reward2}
 
+At the end of training we have these results for our two reward functions and our initial value function. 
+\begin{center}
+\begin{tabular}{||c c c c c||} 
+ \hline
+  & \#Attempts & \#Collision  & \#Failure  & \#Success \\ [0.5ex] 
+ \hline\hline
+ Pre RL & 100 & 84 & 8  & 8 \\ 
+ \hline
+ Rew. 0 & 100 & 31 & 6  & 63 \\
+ Rew. 1 & 100 & X & X  & X \\
+ \hline
+\end{tabular}
+\end{center}
+
+We see a clear improvement from using the supervised learned value function directly for both reward functions. 
+\begin{figure}
+    \centering
+    \includegraphics[width=0.49\textwidth]{docs/latex/figures/statistics_rew0.png}
+    \caption{Reward function 0: Collisions, Failures vs. Time}
+    \label{fig:rew_0_coll}
+\end{figure}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.49\textwidth]{figures/collisions_1.png}
+    \caption{Reward function 1: Collisions/failures vs. time}
+    \label{fig:rew_1_coll}
+\end{figure}
+\todo[inline]{include plots showing collisions going down}
+
+Finally, we show a propagated trajectory from three different value functions: The value function outputted from the ORCA imitation learning \ref{fig:initial_traj}, the value function from the RL with the original reward function \ref{fig:rew_0_traj} and the value function from our updated reward function \ref{fig:rew_1_traj}. Firstly, the RL trajectories both show collision avoiding trajectories in comparison to the pre-RL trajectory. Further, the agent trained on the updated reward function is significantly more collision avoiding than the other post-RL agent. This is clearly an effect of higher penalty in the reward. 
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.49\textwidth]{figures/traj_0.png}
+    \caption{Reward function 0: Sample Trajectory}
+    \label{fig:rew_0_traj}
+\end{figure}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.49\textwidth]{figures/traj_1.png}
+    \caption{Reward function 1: Sample Trajectory}
+    \label{fig:rew_1_traj}
+\end{figure}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.49\textwidth]{figures/initial_traj.png}
+    \caption{Initial ORCA value function: Sample Trajectory}
+    \label{fig:initial_traj}
+\end{figure}
 \section{Conclusion}
-In this paper, we have adapted the method from Chen et. al. \cite{chen2017cadrl}, modifying several parameters and functions. In order to evaluate our method, we compared it to ORCA over 1000 sample trajectories.
+In this paper, we have adapted the method from Chen et. al. \cite{chen2017cadrl}, modifying several parameters and functions. The results are promising showing that model based collision-avoiding behavior can be influenced and controlled by reinforcement learning methods and reward tuning. One other advantage of the RL based approach is that it does not require knowing the goal states or preferred velocities of other robots. This partially observable non-communicative scenario is more realistic in real life. However, the RL approach loses the guarantees of the model-based approaches.  
+
+Further testing on different scenarios and multi-agent systems must be done to verify our results. 
+
+For future research one could also change the behaviors of the other robots and observe the effects on training and evaluation. In addition, we noticed that some states may be redundant in the input of the neural network (e.g, $ r_j $,$ r_i $, $r_j+r_i$) and we should study the effect of removing the redundancy. Researching changes in reward/cooperation parameters and also tuning hyperparameters of the neural network/reinforcement learning algorithm are low-hanging fruit for other interesting projects. 
 
 \bibliographystyle{IEEEtran.bst}
 \bibliography{references.bib}
