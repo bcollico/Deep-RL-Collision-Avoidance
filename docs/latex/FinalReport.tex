@@ -292,7 +292,7 @@ At the end of training we have these results for our two reward functions and ou
  Pre RL & 100 & 84 & 8  & 8 \\ 
  \hline
  Rew. 0 & 100 & 31 & 6  & 63 \\
- Rew. 1 & 100 & X & X  & X \\
+ Rew. 1 & 100 & 5 & 73  & 22 \\
  \hline
 \end{tabular}
 \end{center}
@@ -306,32 +306,32 @@ We see a clear improvement from using the supervised learned value function dire
 \end{figure}
 \begin{figure}
     \centering
-    \includegraphics[width=0.49\textwidth]{figures/collisions_1.png}
-    \caption{Reward function 1: Collisions/failures vs. time}
+    \includegraphics[width=0.49\textwidth]{docs/latex/figures/statistics_reward_1.png}
+    \caption{Reward function 1: Collisions, Failures vs. Time}
     \label{fig:rew_1_coll}
 \end{figure}
-\todo[inline]{include plots showing collisions going down}
 
 Finally, we show a propagated trajectory from three different value functions: The value function outputted from the ORCA imitation learning \ref{fig:initial_traj}, the value function from the RL with the original reward function \ref{fig:rew_0_traj} and the value function from our updated reward function \ref{fig:rew_1_traj}. Firstly, the RL trajectories both show collision avoiding trajectories in comparison to the pre-RL trajectory. Further, the agent trained on the updated reward function is significantly more collision avoiding than the other post-RL agent. This is clearly an effect of higher penalty in the reward. 
 
 \begin{figure}
     \centering
-    \includegraphics[width=0.49\textwidth]{figures/traj_0.png}
+    \includegraphics[width=0.49\textwidth]{docs/latex/figures/original_0_.png}
+    \caption{Initial ORCA value function: Sample Trajectory}
+    \label{fig:initial_traj}
+\end{figure}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.49\textwidth]{docs/latex/figures/reward_original_0_.png}
     \caption{Reward function 0: Sample Trajectory}
     \label{fig:rew_0_traj}
 \end{figure}
 \begin{figure}
     \centering
-    \includegraphics[width=0.49\textwidth]{figures/traj_1.png}
+    \includegraphics[width=0.49\textwidth]{docs/latex/figures/reward_1_0_.png}
     \caption{Reward function 1: Sample Trajectory}
     \label{fig:rew_1_traj}
 \end{figure}
-\begin{figure}
-    \centering
-    \includegraphics[width=0.49\textwidth]{figures/initial_traj.png}
-    \caption{Initial ORCA value function: Sample Trajectory}
-    \label{fig:initial_traj}
-\end{figure}
+
 \section{Conclusion}
 In this paper, we have adapted the method from Chen et. al. \cite{chen2017cadrl}, modifying several parameters and functions. The results are promising showing that model based collision-avoiding behavior can be influenced and controlled by reinforcement learning methods and reward tuning. One other advantage of the RL based approach is that it does not require knowing the goal states or preferred velocities of other robots. This partially observable non-communicative scenario is more realistic in real life. However, the RL approach loses the guarantees of the model-based approaches.  
 
