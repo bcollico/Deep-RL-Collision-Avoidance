@@ -187,12 +187,13 @@ the training value.
 
 In order to evaluate the inverse reinforcement learning step, the value function is visualized through a series of heatmaps. The value function is evaluated on its interpretability. 
 
-In order to evaluate our policy, we pick initial states and propagate our state greedily using one step lookahead with our reward and value function. We do this until we have 10 successful runs and look at the total number of trajectories that are
+In order to evaluate our policy, throughout training we pick initial states and propagate our state greedily using one step lookahead with our reward and value function. We do this until we have 10 successful runs and look at the total number of trajectories that are
 
 \begin{itemize}
     \item Collision-leading
     \item Slow to reach goal: $>25$ timesteps
 \end{itemize}
+We evaluate over 100 trajectories at the end. 
 
 We also do a qualitative analysis of the trajectories, which involves plotting trajectories and analyzing the smoothness of the resulting trajectories.
 \section{Implementation}
@@ -280,20 +281,23 @@ In fact the contrasts are much higher in the post RL heatmap, indicating that th
      \caption{Comparison of Supervised- and Reinforcement-Learning Value Networks.}\label{fig:heatmap_2}
 \end{figure*}
 
-We compare results from our two reward functions. In figure \ref{fig:rew_0_coll} and figure  \ref{fig:rew_1_coll} show both that collisions decrease rapidly in both cases and then decrease rather slowly, but steadily. 
+We compare results from our two reward functions. Figures \ref{fig:rew_0_coll} and \ref{fig:rew_1_coll} show that collisions decrease rapidly in both cases and then decrease rather slowly, but steadily. 
 
-At the end of training we have these results for our two reward functions \todo[inline]{add numbers here}
+At the end of training we have these results for our two reward functions and our initial value function. 
 \begin{center}
-\begin{tabular}{||c c c c||} 
+\begin{tabular}{||c c c c c||} 
  \hline
- Reward function & \#Total attempts & \#Collisions  & \#Failures \\ [0.5ex] 
+  & \#Attempts & \#Collision  & \#Failure  & \#Success \\ [0.5ex] 
  \hline\hline
- 0 & 6 & 87837 & 787 \\ 
+ Pre RL & 100 & 84 & 8  & 8 \\ 
  \hline
- 1 & 7 & 78 & 5415 \\
+ Rew. 0 & 100 & 31 & 6  & 63 \\
+ Rew. 1 & 100 & X & X  & X \\
  \hline
 \end{tabular}
 \end{center}
+
+We see a clear improvement from using the supervised learned value function directly for both reward functions. 
 \begin{figure}
     \centering
     \includegraphics[width=0.49\textwidth]{docs/latex/figures/statistics_rew0.png}
@@ -308,7 +312,7 @@ At the end of training we have these results for our two reward functions \todo[
 \end{figure}
 \todo[inline]{include plots showing collisions going down}
 
-Finally, we show a propagated trajectory from three different value functions: The value function outputted from the ORCA imitation learning, the value function from the RL with the original reward function and the value function from our updated reward function. 
+Finally, we show a propagated trajectory from three different value functions: The value function outputted from the ORCA imitation learning \ref{fig:initial_traj}, the value function from the RL with the original reward function \ref{fig:rew_0_traj} and the value function from our updated reward function \ref{fig:rew_1_traj}. Firstly, the RL trajectories both show collision avoiding trajectories in comparison to the pre-RL trajectory. Further, the agent trained on the updated reward function is significantly more collision avoiding than the other post-RL agent. This is clearly an effect of higher penalty in the reward. 
 
 \begin{figure}
     \centering
@@ -328,13 +332,12 @@ Finally, we show a propagated trajectory from three different value functions: T
     \caption{Initial ORCA value function: Sample Trajectory}
     \label{fig:initial_traj}
 \end{figure}
-\todo[inline]{expand qualitative analysis}
 \section{Conclusion}
-In this paper, we have adapted the method from Chen et. al. \cite{chen2017cadrl}, modifying several parameters and functions. The results are promising showing that robot behavior can be influenced and controlled by reinforcement learning methods and reward tuning. One of the advantages of our RL based approach is that it does not require knowing the goal states or preferred velocities of other robots. This non-communicative scenario is quite realistic in real life. However the RL approach loses the guarantees of the model-based approaches. 
+In this paper, we have adapted the method from Chen et. al. \cite{chen2017cadrl}, modifying several parameters and functions. The results are promising showing that model based collision-avoiding behavior can be influenced and controlled by reinforcement learning methods and reward tuning. One other advantage of the RL based approach is that it does not require knowing the goal states or preferred velocities of other robots. This partially observable non-communicative scenario is more realistic in real life. However, the RL approach loses the guarantees of the model-based approaches.  
 
-Further testing on different scenarios and multi-agent systems must be done to verify the results. 
+Further testing on different scenarios and multi-agent systems must be done to verify our results. 
 
-For future work, we could also change the behaviors of the other robots. In addition, we noticed that some states may be redundant in the input of the neural network (e.g, $ r_j $,$ r_i $, $r_j+r_i$) and we should study the effect of removing the redundancy. Further work could also be done on changing the reward function and also tuning hyperparameters of the neural network and the reinforcement learning algorithm.
+For future research one could also change the behaviors of the other robots and observe the effects on training and evaluation. In addition, we noticed that some states may be redundant in the input of the neural network (e.g, $ r_j $,$ r_i $, $r_j+r_i$) and we should study the effect of removing the redundancy. Researching changes in reward/cooperation parameters and also tuning hyperparameters of the neural network/reinforcement learning algorithm are low-hanging fruit for other interesting projects. 
 
 \bibliographystyle{IEEEtran.bst}
 \bibliography{references.bib}
