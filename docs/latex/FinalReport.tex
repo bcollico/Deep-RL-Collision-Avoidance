@@ -236,12 +236,14 @@ The value network was improved via reinforcement learning by selecting random ep
     \label{fig:actionspace}
 \end{figure}
 
-Given the simulated trajectories using the value function, the successful (collision-avoiding and goal-reaching) trajectories were used to create state-value pairs (labels for training the network). To do this, the rewards during the reinforcement learning simulation were uassimilated into the dataset, meaning the corresponding ORCA trajectories were replaced with the simulated trajectories. The effect was to include randomness and exploration of the state space early in the training process. As training continued, the dataset became more dominated by simulated trajectories from the trained value function, which would help the network converge to an optimal solution.
+Given the simulated trajectories using the value function, the successful (collision-avoiding and goal-reaching) trajectories were used to create state-value pairs (labels for training the network). To do this, the rewards during the reinforcement learning simulation were used in a greedy one-step lookahead function with the current value model. The resulting state-value pairs were assimilated into the dataset, meaning the corresponding ORCA trajectories were replaced with the simulated trajectories. The effect was to include randomness and exploration of the state space early in the training process. As training continued, the dataset became more dominated by simulated trajectories from the trained value function, which would help the network converge to an optimal solution.
+
+The action space generation and reward function implementations were vectorized in order to reduce computational burden during training.
 
 \section{Results}
 
 The value function attained via SL using example ORCA trajectories can be visualized in a simplified manner using a heatmap in the 2D plane. By holding all variables constant except for the position of one of the robots, the output of the value function can be mapped to Cartesian coordinates. This is exemplified in Fig. \ref{fig:heatmap_rot}, where the position and velocity of Robot 1 are held constant while Robot 2 is moved around the plane. These two heatmaps show that the value function learned a rotation invariance, as we attain nearly the same value distribution in both Fig. \ref{fig:heatmap_x} and  Fig. \ref{fig:heatmap_y} with a simple $90\degree$ rotation. We may also visualize the resulting value distribution by varying Robot 1's state while holding Robot 2 constant. In Fig. \ref{fig:heatmap_2}, Robot 2 is stationary in the plane, and Robot 1's position is varied while maintaining a velocity vector in the direction of goal. We can compare the SL policy to the RL policy be observing the difference in Fig. \ref{fig:heatmap_21} and Fig. \ref{fig:heatmap_22}. In both cases, however, the trend is the same, the value network predicts that the time-to-goal will be low when Robot 1 is near it's goal, and the time-to-goal will be high when Robot 1 is far from it's goal or impeded by Robot 2. Improvement can be seen in this aspect after RL value network improvement.
-
+In fact the contrasts are much higher in the post RL heatmap, indicating that the network is more confident. 
 \begin{figure*}[t]
     \centering
     \begin{subfigure}[b]{0.49\textwidth}
@@ -271,7 +273,7 @@ The value function attained via SL using example ORCA trajectories can be visual
      \hfill
      \begin{subfigure}[b]{0.49\textwidth}
          \centering
-         \includegraphics[width=\textwidth]{docs/latex/figures/heatmap_2_Robot_1.png}
+         \includegraphics[width=\textwidth]{docs/latex/figures/heatmap_rl_robot1.png}
          \caption{RL Value Heatmap Varying Robot 1.}
          \label{fig:heatmap_22}
      \end{subfigure}
