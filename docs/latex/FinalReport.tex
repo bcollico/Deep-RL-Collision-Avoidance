@@ -281,7 +281,7 @@ In fact the contrasts are much higher in the post RL heatmap, indicating that th
      \caption{Comparison of Supervised- and Reinforcement-Learning Value Networks.}\label{fig:heatmap_2}
 \end{figure*}
 
-We compare results from our two reward functions. Figures \ref{fig:rew_0_coll} and \ref{fig:rew_1_coll} show that collisions decrease rapidly in both cases and then decrease rather slowly, but steadily. 
+We compare results from our two reward functions. Figures \ref{fig:rew_0_coll} and \ref{fig:rew_1_coll} show that collisions decrease rapidly in both cases and then decrease rather slowly, but steadily. It can be seen in these figures that there is a tradeoff between the number of colliding runs and the number of successful (or time-efficient) runs. Figure \ref{fig:rew_1_coll}, showing perfor  \ref{eqn:reward2}
 
 At the end of training we have these results for our two reward functions and our initial value function. 
 \begin{center}
@@ -301,7 +301,7 @@ We see a clear improvement from using the supervised learned value function dire
 \begin{figure}
     \centering
     \includegraphics[width=0.49\textwidth]{docs/latex/figures/statistics_rew0.png}
-    \caption{Reward function 0: Collisions/failures vs. time}
+    \caption{Reward function 0: Collisions, Failures vs. Time}
     \label{fig:rew_0_coll}
 \end{figure}
 \begin{figure}
