@@ -7,19 +7,20 @@ from state_definitions import get_state, get_joint_state, get_rotated_state
 from itertools import product
 import matplotlib.pyplot as plt
 from matplotlib import rc
+from configs import *
 
-USER = 'Bradley'
+# USER = 'Bradley'
 GAMMA = 0.8
 VARIABLE='Robot_1'
 
-if USER == 'Brian':
-	folder  = '/home/bdobkowski/Stanford/AA277/aa277_project/data'
-elif USER == 'Torstein':
-	folder  = '/home/torstein/Stanford/aa277/aa277_project/data'
-elif USER == 'Bradley':
-    folder  = '/home/bcollico/github/aa277_project/data'
-else:
-	raise Exception('Need to set user folder')
+# if USER == 'Brian':
+# 	folder  = '/home/bdobkowski/Stanford/AA277/aa277_project/data'
+# elif USER == 'Torstein':
+# 	folder  = '/home/torstein/Stanford/aa277/aa277_project/data'
+# elif USER == 'Bradley':
+#     folder  = '/home/bcollico/github/aa277_project/data'
+# else:
+# 	raise Exception('Need to set user folder')
 
 def value_heatmap(value_fcn, s1_in=None, goal=None, save=False, idx=''):
 
@@ -131,7 +132,7 @@ def value_heatmap(value_fcn, s1_in=None, goal=None, save=False, idx=''):
     if not save:
         plt.show()
     elif save:
-        plt.savefig(folder+"/heatmap_"+idx+'_'+VARIABLE+".png")
+        plt.savefig(FOLDER+"/heatmap_"+idx+'_'+VARIABLE+".png")
 
 def map_fcn(x, value_fcn, s1, s2):
 
@@ -151,7 +152,7 @@ def map_fcn(x, value_fcn, s1, s2):
 
 
 if __name__=='__main__':
-    model_path = folder+"/initial_value_model/"
+    model_path = FOLDER+"/post_RL_value_model_reward_1/"
 
     c45 = np.cos(np.pi/4)
     s45 = np.sin(np.pi/4)
@@ -191,12 +192,12 @@ if __name__=='__main__':
     #     ego_state_list.append(np.array([x, y, vel[0], vel[1]]))
     #     goal_list.append(np.array([pgx, pgy]))
 
-    variable_list = ['Robot_2']
+    variable_list = ['Robot_1']
 
     value_fcn = create_model()
     value_fcn.load_weights(model_path)
 
     for VARIABLE in variable_list:
         for i in range(len(ego_state_list)):
-            value_heatmap(value_fcn, ego_state_list[i], goal_list[i], save=True, idx=str(i))
+            value_heatmap(value_fcn, ego_state_list[i], goal_list[i], save=False, idx=str(i))
 

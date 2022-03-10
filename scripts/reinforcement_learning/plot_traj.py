@@ -3,6 +3,7 @@ from tqdm import tqdm
 import numpy as np
 from random import random
 import read_training_data
+from configs import *
 
 USER = 'Bradley'
 
@@ -16,7 +17,7 @@ else:
 	raise Exception('Need to set user folder')
 
 #def plot_traj(states:dict(), goals:dict, radius:dict(), dt=0.1):
-def plot_traj(s1, s2, dt=0.1):
+def plot_traj(s1, s2, dt=0.1, savestr=''):
     # x_ep_dict[1][2][3] is 10-dimensional, and contains the state from get_state() in model.py
     # this function assumes that x_ep_dict[i_ep] is passed as the input
 
@@ -98,6 +99,8 @@ def plot_traj(s1, s2, dt=0.1):
                     color=colors[int(key)-1])
 
     plt.legend()
+    if not savestr == '':
+        plt.savefig(FOLDER + '/' + savestr + '_.png')
     plt.show()
 
 
@@ -121,4 +124,6 @@ if __name__=='__main__':
             radius[str(i)] = episode.R[i]
 
         plot_traj(states, goals, radius, dt=data.dt)
+
+
 
