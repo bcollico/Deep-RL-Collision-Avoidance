@@ -1,6 +1,8 @@
 ## AA 277: Multi-Robot Control and Distributed Optimization
 Programmers: [Torstein Eliassen](https://github.com/gravlaks), [Brian Dobkowski](https://github.com/bdobkowski), [Bradley Collicott](https://github.com/bcollico)
 
+A link to the full final report is available here: [AA277_FinalReport.pdf](./docs/latex/FinalReport.pdf)
+
 ## Project: Deep Reinforcement Learning for Collision Avoidance
 This project implements a scheme for learning collision-avoiding behavior in a two-robot system. Following the approach by Yu Fan Chen et. al. in [Decentralized Non-communicating Multiagent Collision Avoidance with Deep Reinforcement Learning](https://arxiv.org/pdf/1609.07845.pdf), we use inverse reinforcement learning on [ORCA](https://gamma.cs.unc.edu/ORCA/publications/ORCA.pdf) example trajectories followed by randomized Deep V-Learning to approximate the optimal collision avoiding value function.
 
