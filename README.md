@@ -1,4 +1,4 @@
-# AA 277: Multi-Robot Control and Distributed Optimization
+## AA 277: Multi-Robot Control and Distributed Optimization
 Programmers: [Torstein Eliassen](https://github.com/gravlaks), [Brian Dobkowski](https://github.com/bdobkowski), [Bradley Collicott](https://github.com/bcollico)
 
 ## Project: Deep Reinforcement Learning for Collision Avoidance
