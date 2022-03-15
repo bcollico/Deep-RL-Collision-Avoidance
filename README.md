@@ -7,7 +7,7 @@ A link to the full final report is available here: [AA277_FinalReport.pdf](./doc
 This project implements a scheme for learning collision-avoiding behavior in a two-robot system. Following the approach by Yu Fan Chen et. al. in [Decentralized Non-communicating Multiagent Collision Avoidance with Deep Reinforcement Learning](https://arxiv.org/pdf/1609.07845.pdf), we use inverse reinforcement learning on [ORCA](https://gamma.cs.unc.edu/ORCA/publications/ORCA.pdf) example trajectories followed by randomized Deep V-Learning to approximate the optimal collision avoiding value function.
 
 ### Results
-The value function is visualized using heatmaps where the position of the second robot is fixed on the plane. From left to right, the images below show the value function learned from Inverse Reinforcement Learning on ORCA examples, the value funciton learned from Deep V-Learning, the value function of robot 1 changing over time on a representative trajetory.
+The value function is visualized using heatmaps where the position of the second robot is fixed on the plane. From left to right, the images below show the value function learned from Inverse Reinforcement Learning on ORCA examples, the value function learned from Deep V-Learning, the value function of robot 1 changing over time on a representative trajetory.
 <p align="center">
      <img src="./docs/latex/figures/heatmap_1_Robot_1.png" height="180"/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="./docs/latex/figures/heatmap_rl_robot1.png" height="180"/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="./docs/latex/figures/post_rl_rw.gif" height="180"/>
 </p>
